@@ -1,0 +1,31 @@
+# Private notes, credentials, deploy scripts, unlicensed footage: never in the public repo.
+private/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Footage and datasets: only the manifest (license + source) is versioned.
+data/raw/
+*.mp4
+*.mov
+*.mkv
+
+# Build output and dependencies
+node_modules/
+dist/
+build/
+coverage/
+*.log
+
+# Go binaries
+/server/vigiax
+/server/bin/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
