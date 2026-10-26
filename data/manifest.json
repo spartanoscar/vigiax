@@ -1,0 +1,49 @@
+{
+  "note": "Raw files live in data/raw/ (not versioned). Every clip or photo used for testing or evaluation is listed here with its source and license.",
+  "items": [
+    {
+      "file": "data/raw/darby-creek-gauge.jpg",
+      "title": "Darby Creek Flood Gauge 1.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Darby_Creek_Flood_Gauge_1.jpg",
+      "author": "Sixflashphoto",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2017-09-21 14:04:15",
+      "kind": "photo",
+      "downloaded": "2026-10-26 (1280 px wide rendition)"
+    },
+    {
+      "file": "data/raw/bright-angel-flash-flood.jpg",
+      "title": "Bright Angel Creek After Flash Flood (55503430599).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Bright_Angel_Creek_After_Flash_Flood_(55503430599).jpg",
+      "author": "Grand Canyon NPS",
+      "license": "Public domain",
+      "license_url": null,
+      "taken": "Taken on 30 August 2026",
+      "kind": "photo",
+      "downloaded": "2026-10-26 (1280 px wide rendition)"
+    },
+    {
+      "file": "data/raw/marinilla-quebrada.jpg",
+      "title": "Marinilla Colombia August 2017 (13) - Quebrada de Marinilla (rio abajo).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Marinilla_Colombia_August_2017_(13)_-_Quebrada_de_Marinilla_(rio_abajo).jpg",
+      "author": "Daniel Di Palma",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2017-08-07 13:09:29",
+      "kind": "photo",
+      "downloaded": "2026-10-26 (1280 px wide rendition)"
+    },
+    {
+      "file": "data/raw/oak-creek-flash-flood.jpg",
+      "title": "Oak Creek Flash Flood (6159690517).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Oak_Creek_Flash_Flood_(6159690517).jpg",
+      "author": "ZionNPS",
+      "license": "Public domain",
+      "license_url": null,
+      "taken": "Taken on 18 September 2011, 13:33:33",
+      "kind": "photo",
+      "downloaded": "2026-10-26 (1280 px wide rendition)"
+    }
+  ]
+}
