@@ -74,3 +74,8 @@ docs/     architecture, demo script
 
 Every number published here (lead time, accuracy, latency, cost per hour) will come from a run in `eval/`,
 with the command to reproduce it.
+
+## License
+
+[MIT](LICENSE). Third-party footage and 3D assets keep their own licenses, listed in `data/manifest.json`
+and `ASSETS.md`.
