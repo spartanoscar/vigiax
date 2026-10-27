@@ -29,3 +29,6 @@ coverage/
 .DS_Store
 .idea/
 .vscode/
+
+# Local service data (station readings)
+server/var/

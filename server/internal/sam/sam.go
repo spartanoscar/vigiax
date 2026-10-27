@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"time"
 
@@ -86,6 +87,35 @@ func (o *Object) At(x, y int) bool {
 	mx := (x - o.Box.X1) * o.MaskW / (o.Box.X2 - o.Box.X1 + 1)
 	my := (y - o.Box.Y1) * o.MaskH / (o.Box.Y2 - o.Box.Y1 + 1)
 	return o.Mask[my*o.MaskW+mx] == 1
+}
+
+// Waterline is the median topmost masked row over frame columns x0..x1, across
+// all objects; ok is false when no column has a masked pixel.
+func (r *Result) Waterline(x0, x1 int) (y int, ok bool) {
+	var tops []int
+	for x := max(x0, 0); x <= min(x1, r.FrameW-1); x++ {
+		top := -1
+		for i := range r.Objects {
+			o := &r.Objects[i]
+			if x < o.Box.X1 || x > o.Box.X2 {
+				continue
+			}
+			for y := o.Box.Y1; y <= o.Box.Y2 && (top < 0 || y < top); y++ {
+				if o.At(x, y) {
+					top = y
+					break
+				}
+			}
+		}
+		if top >= 0 {
+			tops = append(tops, top)
+		}
+	}
+	if len(tops) == 0 {
+		return 0, false
+	}
+	slices.Sort(tops)
+	return tops[len(tops)/2], true
 }
 
 // Area is the object's mask area in frame pixels.

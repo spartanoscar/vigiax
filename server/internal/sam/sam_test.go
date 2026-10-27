@@ -75,3 +75,21 @@ func TestParse(t *testing.T) {
 		t.Fatal("empty output must parse to no objects")
 	}
 }
+
+func TestWaterline(t *testing.T) {
+	// Two 4×4 boxes, mask raster 2×2 (upsampled ×2): left box masks its bottom
+	// half, right box its right column.
+	r := &Result{FrameW: 10, FrameH: 10, Objects: []Object{
+		{Box: Box{0, 2, 3, 5}, MaskW: 2, MaskH: 2, Mask: []byte{0, 0, 1, 1}},
+		{Box: Box{6, 6, 9, 9}, MaskW: 2, MaskH: 2, Mask: []byte{0, 1, 0, 1}},
+	}}
+	if y, ok := r.Waterline(0, 3); !ok || y != 4 {
+		t.Fatalf("left: got %d %v, want 4", y, ok)
+	}
+	if y, ok := r.Waterline(8, 9); !ok || y != 6 {
+		t.Fatalf("right: got %d %v, want 6", y, ok)
+	}
+	if _, ok := r.Waterline(4, 5); ok {
+		t.Fatal("found water in empty columns")
+	}
+}

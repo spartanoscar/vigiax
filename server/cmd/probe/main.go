@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"slices"
 	"time"
 
 	"github.com/spartanoscar/vigiax/server/internal/meta"
@@ -86,7 +85,9 @@ func main() {
 			if *cols != "" {
 				fmt.Sscanf(*cols, "%d:%d", &x0, &x1)
 			}
-			out.WaterlineY = waterline(r, x0, x1)
+			if y, ok := r.Waterline(x0, x1); ok {
+				out.WaterlineY = &y
+			}
 		}
 		if *withScene {
 			s, err := scene.Read(ctx, c, *sceneModel, *effort, img)
@@ -100,23 +101,4 @@ func main() {
 		fmt.Println(string(b))
 	}
 	fmt.Fprintf(os.Stderr, "total %.4f USD, %s\n", total, time.Now().Format(time.RFC3339))
-}
-
-// waterline is the median topmost water row over columns x0..x1, or nil when
-// no column has water.
-func waterline(r *sam.Result, x0, x1 int) *int {
-	var tops []int
-	for x := max(x0, 0); x <= min(x1, r.FrameW-1); x++ {
-		for y := 0; y < r.FrameH; y++ {
-			if slices.ContainsFunc(r.Objects, func(o sam.Object) bool { return o.At(x, y) }) {
-				tops = append(tops, y)
-				break
-			}
-		}
-	}
-	if len(tops) == 0 {
-		return nil
-	}
-	slices.Sort(tops)
-	return &tops[len(tops)/2]
 }
