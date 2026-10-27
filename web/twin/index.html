@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Live twin — trigger a flash flood · Vigiax</title>
+    <meta name="description" content="A mountain stream in your browser. Start the camera node, trigger a flash flood and watch SAM 3.1 measure the water frame by frame." />
+    <link rel="canonical" href="https://vigiax.bukivo.com/twin/" />
+    <meta name="theme-color" content="#060b16" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Vigiax" />
+    <meta property="og:title" content="Vigiax live twin — trigger a flash flood" />
+    <meta property="og:description" content="Start the camera node, trigger a flash flood and watch SAM 3.1 measure the water frame by frame." />
+    <meta property="og:url" content="https://vigiax.bukivo.com/twin/" />
+    <meta property="og:image" content="https://vigiax.bukivo.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="view" aria-label="3D view of the stream. Drag to look around, scroll to zoom."></div>
+
+    <header class="hud-top">
+      <a class="brand glass" href="/" aria-label="Vigiax home">
+        <img src="/favicon.svg" alt="" width="28" height="28" />
+        <span class="brand-name">Vigiax</span>
+        <span class="brand-tag">Live twin</span>
+      </a>
+      <div id="surge-banner" class="surge-banner glass" hidden role="status">
+        <span class="surge-pulse" aria-hidden="true"></span>
+        <span>Flash flood coming down</span>
+        <strong id="surge-count">5:00</strong>
+      </div>
+      <a class="hud-link glass" href="/#how">How it works</a>
+    </header>
+
+    <!-- What the camera node sees and what SAM 3.1 measured -->
+    <aside id="panel" class="sensor glass" aria-label="Camera node">
+      <div class="feed-frame">
+        <canvas id="feed"></canvas>
+        <canvas id="feed-overlay"></canvas>
+        <span class="feed-tag"><span class="rec" aria-hidden="true"></span>Camera node</span>
+        <span class="feed-ms" id="sam-ms"></span>
+      </div>
+      <p class="feed-state" id="send-state" aria-live="polite">Camera node idle</p>
+
+      <div class="readout">
+        <div class="readout-main">
+          <span class="k">Measured by SAM 3.1</span>
+          <span class="v" id="measured-level">–</span>
+        </div>
+        <div class="readout-side">
+          <div><span class="k">True level</span><span class="v" id="true-level">–</span></div>
+          <div><span class="k">Rise</span><span class="v" id="rise">–</span></div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="chart" height="160"></canvas>
+        <div class="legend" aria-hidden="true">
+          <span><i class="lg-truth"></i>True level</span>
+          <span><i class="lg-sam"></i>SAM 3.1</span>
+          <span class="lg-span">last 10 min</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- The three things a visitor does -->
+    <nav class="dock glass" aria-label="Twin controls">
+      <button id="send" class="dock-btn go" type="button">Start camera node</button>
+      <div class="surge-group">
+        <button id="surge" class="dock-btn flood" type="button">Flash flood</button>
+        <label class="surge-when">
+          <span class="sr-only">Peak arrives</span>
+          <select id="surge-min" aria-label="Peak arrives in">
+            <option value="2">in 2 min</option>
+            <option value="5" selected>in 5 min</option>
+            <option value="10">in 10 min</option>
+          </select>
+        </label>
+      </div>
+      <button id="tune" class="dock-btn icon" type="button" aria-expanded="false" aria-controls="tuning" title="Adjust the stream">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" /><circle cx="15" cy="6" r="2" /><circle cx="9" cy="12" r="2" /><circle cx="17" cy="18" r="2" /></svg>
+        <span class="sr-only">Adjust the stream</span>
+      </button>
+    </nav>
+
+    <!-- Everything else stays out of sight until asked for -->
+    <section id="tuning" class="tuning glass" hidden aria-label="Adjust the stream">
+      <div class="tuning-head">
+        <h2>Adjust the stream</h2>
+        <button class="close" type="button" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+      <div class="field">
+        <label for="level">Water level <output id="level-out"></output></label>
+        <input type="range" id="level" min="0.2" max="3.6" step="0.01" value="0.45" />
+      </div>
+      <div class="field">
+        <label for="mud">Mud <output id="mud-out"></output></label>
+        <input type="range" id="mud" min="0" max="1" step="0.01" value="0.15" />
+      </div>
+      <div class="calib">
+        <button id="calibrate" class="soft-btn" type="button">Calibrate with Muse Spark</button>
+        <p class="hint" id="calib-state">No calibration yet</p>
+      </div>
+      <dl class="meta">
+        <div><dt>Station</dt><dd><code id="station-id">twin</code></dd></div>
+        <div><dt>Model cost today</dt><dd id="cost">–</dd></div>
+      </dl>
+    </section>
+
+    <p class="orbit-hint" aria-hidden="true">Drag to look around · scroll to zoom</p>
+
+    <!-- First visit: one sentence, one button -->
+    <div id="intro" class="intro" hidden>
+      <div class="intro-card glass" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+        <p class="intro-kicker">Vigiax · live twin</p>
+        <h1 id="intro-title">A mountain stream.<br /><span class="grad">Make it flood.</span></h1>
+        <p class="intro-lead">A camera on a pole watches the gauge. Every 5 seconds it sends a frame and SAM 3.1 measures the water.</p>
+        <ol class="intro-steps">
+          <li><span>1</span>Start the camera node</li>
+          <li><span>2</span>Trigger a flash flood</li>
+          <li><span>3</span>Watch the measurement follow the water</li>
+        </ol>
+        <button class="intro-go" type="button" data-start>Start the camera</button>
+        <button class="intro-skip" type="button" data-close>Look around first</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/twin-ui.ts"></script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

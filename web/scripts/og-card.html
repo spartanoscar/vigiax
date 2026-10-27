@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  Share image (Open Graph, 1200×630) for vigiax.bukivo.com. Rendered with headless Chrome:
+
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --hide-scrollbars \
+    --window-size=1200,630 --screenshot=public/og.png "file://$PWD/scripts/og-card.html"
+
+  (run from web/). It uses the real twin capture in public/img/twin-hero.webp.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      @font-face { font-family: "Outfit"; src: url("../node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+      @font-face { font-family: "Inter"; src: url("../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+      html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        position: relative; font-family: "Inter", sans-serif; color: #c9d6e8;
+        background:
+          radial-gradient(45% 60% at 8% 0%, rgba(28, 120, 190, 0.55), transparent 70%),
+          radial-gradient(40% 55% at 100% 100%, rgba(33, 137, 198, 0.35), transparent 70%),
+          linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 56px 56px,
+          linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 56px 56px,
+          #060b16;
+      }
+      .copy { position: absolute; left: 72px; top: 70px; width: 520px; }
+      .logo { display: flex; align-items: center; gap: 14px; font: 700 34px/1 "Outfit"; color: #fff; }
+      .logo img { width: 52px; height: 52px; border-radius: 14px; }
+      h1 { margin: 44px 0 0; font: 700 70px/0.98 "Outfit"; letter-spacing: -0.035em; color: #fff; }
+      .grad { background: linear-gradient(90deg, #5fd0ff, #2f8fe8); -webkit-background-clip: text; color: transparent; }
+      p { margin: 28px 0 0; font-size: 24px; line-height: 1.45; }
+      .url { position: absolute; left: 72px; bottom: 56px; font: 600 20px "Inter"; color: #9fb2cc; }
+      .shot { position: absolute; left: 640px; top: 96px; width: 720px; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6); transform: perspective(1600px) rotateY(-10deg); transform-origin: left center; }
+      .shot img { display: block; width: 100%; }
+      .alert { position: absolute; left: 600px; top: 400px; width: 340px; padding: 16px 18px; border-radius: 18px; background: #fff; color: #1d2a35; font-size: 17px; line-height: 1.4; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }
+      .alert strong { display: block; font-size: 14px; color: #0b1b26; margin-bottom: 4px; }
+      .alert b { color: #ef3b3d; }
+    </style>
+  </head>
+  <body>
+    <div class="copy">
+      <div class="logo"><img src="../public/favicon.svg" alt="" />Vigiax</div>
+      <h1>Any camera<br />becomes a<br /><span class="grad">flood warning.</span></h1>
+      <p>SAM 3.1 measures the stream. An agent warns the village before the water arrives.</p>
+    </div>
+    <div class="url">vigiax.bukivo.com</div>
+    <div class="shot"><img src="../public/img/twin-hero.webp" alt="" /></div>
+    <div class="alert"><strong>⚠ Vigiax · La Honda Creek</strong>The creek rose <b>25 cm in 10 min</b>. Move away from the bank now.</div>
+  </body>
+</html>

@@ -3,54 +3,509 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vigiax — digital twin</title>
-    <meta name="description" content="A mountain stream with a camera node: raise the water and watch SAM 3.1 measure it." />
+    <title>Vigiax — Flash-flood early warning from any camera</title>
+    <meta name="description" content="Vigiax turns any camera into a river gauge. SAM 3.1 measures the water and an AI agent warns the village on WhatsApp before a flash flood arrives." />
+    <link rel="canonical" href="https://vigiax.bukivo.com/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#060b16" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Vigiax" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Vigiax — any camera becomes a flash-flood warning" />
+    <meta property="og:description" content="SAM 3.1 measures the stream, Muse Spark reads the scene, and an agent warns the people downstream on WhatsApp, in plain words." />
+    <meta property="og:url" content="https://vigiax.bukivo.com/" />
+    <meta property="og:image" content="https://vigiax.bukivo.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Vigiax: a mountain stream watched by a camera, with the measured water level and a WhatsApp alert." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Vigiax — any camera becomes a flash-flood warning" />
+    <meta name="twitter:description" content="SAM 3.1 measures the stream; an agent warns the village on WhatsApp before the flood arrives. Try the live twin." />
+    <meta name="twitter:image" content="https://vigiax.bukivo.com/og.png" />
+
+    <link rel="preload" href="/img/twin-hero.webp" as="image" type="image/webp" fetchpriority="high" />
+
+    <script type="application/ld+json">
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Vigiax",
+          "url": "https://vigiax.bukivo.com/",
+          "inLanguage": "en"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Vigiax",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "Web",
+          "url": "https://vigiax.bukivo.com/",
+          "description": "Flash-flood early warning from any camera: SAM 3.1 measures the water level, an AI agent decides the alert level and warns the community on WhatsApp.",
+          "image": "https://vigiax.bukivo.com/og.png",
+          "license": "https://opensource.org/licenses/MIT",
+          "codeRepository": "https://github.com/spartanoscar/vigiax",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        }
+      ]
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Does it need special hardware?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Any camera that can send a photo works: a phone in a browser, an IP camera, or a small board with a camera. In the field it needs a reference — a painted gauge or a fixed mark — and, for the night, an infrared camera."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What happens at night?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "A normal camera sees little in the dark, and that is the known weak spot of camera gauges. The field node uses an infrared camera or a light; the twin has a night mode to show the difference honestly."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What if the internet goes down?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The node keeps measuring locally and can sound a siren on its own. Readings are stored and sent when the link returns, and LoRa or SMS can carry the alert when there is no data at all."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does the AI write the alert?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "It chooses the level and explains why, but it never writes the numbers. Messages come from fixed templates filled with measured values, and a verifier checks every figure before anything is sent."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much does it cost to run?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Segmentation runs every few seconds and costs a fraction of a cent per frame. The language models only run on events, and every alert logs its tokens and cost, so the bill per stream is known, not guessed."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I use it for my stream?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The code is open source under the MIT license. Try the twin first, then read the repository on GitHub to run a node with your own camera."
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="view"></div>
-    <aside id="panel">
-      <header>
-        <h1>Vigiax</h1>
-        <p>Digital twin · station <code id="station-id">twin</code></p>
-      </header>
+    <a class="skip" href="#main">Skip to content</a>
 
-      <section class="feed">
-        <div class="feed-frame">
-          <canvas id="feed"></canvas>
-          <canvas id="feed-overlay"></canvas>
+    <header class="nav" id="nav">
+      <div class="wrap nav-in">
+        <a class="logo" href="/" aria-label="Vigiax home">
+          <img src="/favicon.svg" alt="" width="32" height="32" />
+          <span>Vigiax</span>
+        </a>
+        <nav class="nav-links" aria-label="Main">
+          <a href="#how">How it works</a>
+          <a href="#offline">Low signal</a>
+          <a href="#faq">FAQ</a>
+          <a href="https://github.com/spartanoscar/vigiax" rel="noopener">GitHub</a>
+        </nav>
+        <a class="btn btn-sm btn-primary" href="/twin/">Try it live</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ─── Hero ─── -->
+      <section class="hero dark">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="wrap hero-in">
+          <div class="hero-copy">
+            <p class="pill">
+              <span class="pill-dot" aria-hidden="true"></span>
+              Flash-flood early warning · SAM 3.1 + Muse Spark
+            </p>
+            <h1>Any camera becomes a <span class="grad">flood warning.</span></h1>
+            <p class="lead">
+              Flash floods rise in minutes on mountain streams that have no sensor. Vigiax watches the water through any
+              camera, measures it with SAM 3.1, and an AI agent warns the people downstream on WhatsApp — in plain
+              words, with what to do.
+            </p>
+            <div class="cta-row">
+              <a class="btn btn-primary btn-lg" href="/twin/">
+                Try the live twin
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </a>
+              <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+            </div>
+            <p class="trust">No sign-up · runs in your browser · trigger a flood yourself</p>
+          </div>
+
+          <div class="hero-visual">
+            <figure class="device">
+              <div class="device-bar" aria-hidden="true">
+                <i></i><i></i><i></i>
+                <span>vigiax.bukivo.com/twin</span>
+              </div>
+              <img
+                src="/img/twin-hero.webp"
+                alt="The Vigiax digital twin: a mountain stream in 3D, the camera node's view with the waterline found by SAM 3.1, and the measured level next to the true level."
+                width="1568"
+                height="773"
+                fetchpriority="high"
+              />
+            </figure>
+            <div class="float-alert" aria-label="Example alert">
+              <div class="fa-head">
+                <span class="fa-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 3l9.5 17h-19z" /><path d="M12 10v4M12 17.2v.1" /></svg>
+                </span>
+                <strong>Vigiax · La Honda Creek</strong>
+                <time>now</time>
+              </div>
+              <p>The creek rose <b>25 cm in 10 min</b> and is carrying mud. Move away from the bank now and warn your neighbours.</p>
+            </div>
+          </div>
         </div>
-        <div class="feed-meta"><span id="send-state">Camera node idle</span><span id="sam-ms"></span></div>
       </section>
 
-      <section class="numbers">
-        <div><span class="k">True level</span><span class="v" id="true-level">–</span></div>
-        <div><span class="k">Measured by SAM</span><span class="v" id="measured-level">–</span></div>
-        <div><span class="k">Rise, 5 min</span><span class="v" id="rise">–</span></div>
-        <div><span class="k">Model cost today</span><span class="v" id="cost">–</span></div>
+      <!-- ─── Facts bar ─── -->
+      <section class="facts-wrap" aria-label="At a glance">
+        <ul class="facts wrap-narrow">
+          <li>
+            <span class="f-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h3l2-2h4l2 2h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><circle cx="12" cy="13" r="3.5" /></svg></span>
+            <span><b>Any camera</b>phone, IP camera or the twin</span>
+          </li>
+          <li>
+            <span class="f-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span>
+            <span><b>Every 5 seconds</b>a new measurement</span>
+          </li>
+          <li>
+            <span class="f-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18a7 7 0 0 1 0-10M19 18a7 7 0 0 0 0-10M8.5 15a3 3 0 0 1 0-4M15.5 15a3 3 0 0 0 0-4" /><circle cx="12" cy="13" r="1" /></svg></span>
+            <span><b>Numbers, not video</b>made for 2G and LoRa</span>
+          </li>
+          <li>
+            <span class="f-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z" /><path d="M9 10h6M9 13.5h4" /></svg></span>
+            <span><b>Plain words</b>alerts on WhatsApp</span>
+          </li>
+        </ul>
       </section>
 
-      <canvas id="chart" height="160"></canvas>
-
-      <section class="controls">
-        <label for="level">Water level <output id="level-out"></output></label>
-        <input type="range" id="level" min="0.2" max="3.6" step="0.01" value="0.45" />
-        <label for="mud">Mud <output id="mud-out"></output></label>
-        <input type="range" id="mud" min="0" max="1" step="0.01" value="0.15" />
-        <div class="row">
-          <button id="surge">Trigger surge</button>
-          <select id="surge-min" aria-label="Surge duration">
-            <option value="2">in 2 min</option>
-            <option value="5" selected>in 5 min</option>
-            <option value="10">in 10 min</option>
-          </select>
+      <!-- ─── Problem ─── -->
+      <section class="section problem">
+        <div class="wrap">
+          <p class="kicker">The problem</p>
+          <h2 class="h2 measure">The water comes down <span class="hl">faster than the warning.</span></h2>
+          <div class="problem-grid">
+            <p class="body-lg">
+              In Colombia, flash floods kill people every rainy season. They
+              rise in minutes on small mountain streams, and almost none of those streams has a sensor. Official
+              bulletins cover a whole basin or town, not the stream behind your house. Where a sensor does exist,
+              someone often still has to go and look at the water before the alarm sounds.
+            </p>
+            <div class="stat-cards">
+              <div class="stat">
+                <span class="stat-n">~4,200</span>
+                <span class="stat-l">streams in the Medellín valley alone</span>
+              </div>
+              <div class="stat">
+                <span class="stat-n">&lt; 30</span>
+                <span class="stat-l">of them with a water-level sensor</span>
+              </div>
+              <p class="cite">Source: SIATA, Medellín early-warning system.</p>
+            </div>
+          </div>
+          <blockquote class="quote">
+            Satellites see the flood after it happened.<br />
+            <span class="grad-dark">Vigiax sees the stream rising, minutes before.</span>
+          </blockquote>
         </div>
-        <div class="row">
-          <button id="send" class="primary">Start camera node</button>
-          <button id="calibrate">Calibrate</button>
-        </div>
-        <p class="hint" id="calib-state">No calibration yet</p>
       </section>
-    </aside>
-    <script type="module" src="/src/main.ts"></script>
+
+      <!-- ─── How it works ─── -->
+      <section class="section dark how" id="how">
+        <div class="how-bg" aria-hidden="true"></div>
+        <div class="wrap">
+          <p class="kicker kicker-dark">How it works</p>
+          <h2 class="h2 measure">A cheap loop that never sleeps. <span class="grad">A mind that wakes when it matters.</span></h2>
+          <p class="body-lg muted-dark measure">
+            Measuring runs every few seconds and costs almost nothing. The language models only wake up when something
+            changes — so one node can be watched 24/7 on a small budget.
+          </p>
+
+          <ol class="pipeline">
+            <li class="step">
+              <span class="step-tag">Edge</span>
+              <span class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h3l2-2h4l2 2h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><circle cx="12" cy="13" r="3.5" /></svg></span>
+              <h3>Camera node</h3>
+              <p>Sends a frame every few seconds. A phone, an IP camera or the virtual camera in the twin.</p>
+            </li>
+            <li class="step">
+              <span class="step-tag tag-on">Always on</span>
+              <span class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c2 0 2-1.5 4.5-1.5S9.5 15 12 15s2-1.5 4.5-1.5S19 15 21 15" /><path d="M8 4v16M8 7h3M8 10h2" /></svg></span>
+              <h3>SAM 3.1</h3>
+              <p>Segments the water against the gauge: level in centimetres and rate of rise.</p>
+            </li>
+            <li class="step">
+              <span class="step-tag tag-event">On events</span>
+              <span class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg></span>
+              <h3>Muse Spark</h3>
+              <p>When something changes, it reads the scene: muddy water, logs, people near the bank.</p>
+            </li>
+            <li class="step">
+              <span class="step-tag tag-event">On events</span>
+              <span class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-4 10.5V17h8v-3.5A6 6 0 0 0 12 3zM9.5 21h5" /></svg></span>
+              <h3>Alert agent</h3>
+              <p>Muse Spark Open remembers the last hours — trend, rain, alerts sent, who answered — and decides.</p>
+            </li>
+            <li class="step">
+              <span class="step-tag tag-people">Community</span>
+              <span class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z" /><path d="M9 10h6M9 13.5h4" /></svg></span>
+              <h3>WhatsApp alert</h3>
+              <p>Short, plain words, what to do now. Also web push on the dashboard.</p>
+            </li>
+          </ol>
+
+          <ul class="levels" aria-label="Alert levels">
+            <li class="lv lv-0"><b>Normal</b>The stream is calm</li>
+            <li class="lv lv-1"><b>Watch</b>Rising, keep an eye</li>
+            <li class="lv lv-2"><b>Warning</b>Get ready to leave</li>
+            <li class="lv lv-3"><b>Evacuate</b>Move away now</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ─── Band: measure ─── -->
+      <section class="section band">
+        <div class="wrap band-in">
+          <div class="band-copy">
+            <p class="kicker">Measure</p>
+            <h2 class="h2">It measures the water. <span class="hl">It doesn't guess.</span></h2>
+            <p class="body-lg">
+              SAM 3.1 finds the water in every frame and the server reads where it meets the gauge. Calibrated once —
+              Muse Spark reads the numbers printed on the gauge itself — every frame becomes a level in centimetres
+              and a rate of rise.
+            </p>
+            <ul class="checks">
+              <li>Calibrates by reading the gauge, no tape measure</li>
+              <li>Rate of rise over the last 5 and 10 minutes</li>
+              <li>In the twin, every reading is checked against the true level</li>
+            </ul>
+          </div>
+          <figure class="band-visual shot">
+            <img src="/img/camera-frame.webp" alt="A frame from the camera node: the stream, the gauge and the waterline found by SAM 3.1." width="1280" height="720" loading="lazy" />
+            <figcaption>
+              <span class="cap-dot" aria-hidden="true"></span>
+              What the camera node sends, with the waterline SAM 3.1 found
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ─── Band: decide and warn ─── -->
+      <section class="section band tinted">
+        <div class="wrap band-in reverse">
+          <div class="band-copy">
+            <p class="kicker">Decide and warn</p>
+            <h2 class="h2">An agent that <span class="hl">cannot lie</span> about the water.</h2>
+            <p class="body-lg">
+              The language model chooses the alert level and explains why. It never writes the numbers: alert texts
+              come from fixed templates filled with measured values, and a verifier rejects any figure that does not
+              match the measurements. When it is unsure, it asks a person on the ground to confirm.
+            </p>
+            <ul class="checks">
+              <li>Memory over hours: trend, rain, alerts sent, who acknowledged</li>
+              <li>Every number checked before a message leaves</li>
+              <li>Tokens and cost logged for every alert</li>
+            </ul>
+          </div>
+          <div class="band-visual chat" aria-label="Illustration: the alert as it arrives on a phone, and the checks it passed">
+            <div class="phone">
+              <div class="phone-head">
+                <img src="/favicon.svg" alt="" width="34" height="34" />
+                <div><b>Vigiax</b><span>La Honda Creek</span></div>
+              </div>
+              <div class="msg msg-watch">
+                <span class="msg-lv">Watch</span>
+                The creek is rising: <b>12 cm in 10 min</b>. Stay alert and do not cross it.
+                <time>4:12 PM</time>
+              </div>
+              <div class="msg msg-evac">
+                <span class="msg-lv">Evacuate</span>
+                It rose <b>25 cm in 10 min</b> and is carrying mud and logs. Move away from the bank now and warn your neighbours.
+                <time>4:21 PM</time>
+              </div>
+              <div class="msg msg-me">Got it, we are leaving.<time>4:22 PM</time></div>
+            </div>
+            <div class="verify">
+              <p class="verify-h">Before sending</p>
+              <ul>
+                <li>25 cm in 10 min <span>= measured</span></li>
+                <li>Mud, logs <span>= scene reading</span></li>
+                <li>Level only goes up while rising</li>
+                <li>Text from template <code>evacuate</code></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Band: low connectivity ─── -->
+      <section class="section band" id="offline">
+        <div class="wrap band-in">
+          <div class="band-copy">
+            <p class="kicker">Low connectivity</p>
+            <h2 class="h2">Built for places <span class="hl">without signal.</span></h2>
+            <p class="body-lg">
+              The mountains that flood are the ones with the worst coverage. The node measures locally and can sound a
+              siren with no internet. It sends numbers, not video, and keeps them until the link comes back. A node
+              upstream warns the village downstream.
+            </p>
+            <ul class="checks">
+              <li>Local siren, even offline</li>
+              <li>Store-and-forward when the link drops</li>
+              <li>LoRa and SMS as fallback</li>
+            </ul>
+          </div>
+          <div class="band-visual net">
+            <div class="net-modes" role="img" aria-label="Network modes in the twin: normal, 2G, offline and LoRa">
+              <span class="on">Normal</span><span>2G</span><span>Offline</span><span>LoRa</span>
+            </div>
+            <div class="packet">
+              <div class="packet-head"><span>One reading</span><span class="packet-size">60 bytes</span></div>
+              <pre><code>{"t":"16:21:05","level_cm":184,
+ "rise_cm_10min":25,"mud":0.7}</code></pre>
+            </div>
+            <div class="river-line" aria-hidden="true">
+              <div class="rl-node"><span class="rl-dot up"></span>Upstream node</div>
+              <div class="rl-track"><i></i></div>
+              <div class="rl-node"><span class="rl-dot"></span>Village</div>
+            </div>
+            <p class="net-note">The warning travels down the valley faster than the water.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Meta models ─── -->
+      <section class="section models">
+        <div class="wrap">
+          <p class="kicker center">Under the hood</p>
+          <h2 class="h2 center">Three of Meta's models, <span class="hl">one job each.</span></h2>
+          <div class="model-grid">
+            <article class="model">
+              <span class="model-name">SAM 3.1</span>
+              <h3>Sees the water</h3>
+              <p>Segments the water in every frame. The mask, the gauge and the calibration give the level in centimetres.</p>
+              <span class="model-when">Every frame</span>
+            </article>
+            <article class="model">
+              <span class="model-name">Muse Spark</span>
+              <h3>Reads the scene</h3>
+              <p>Reads the numbers on the gauge to calibrate, and describes what matters when something changes: mud, logs, people.</p>
+              <span class="model-when">On events</span>
+            </article>
+            <article class="model">
+              <span class="model-name">Muse Spark Open</span>
+              <h3>Keeps watch</h3>
+              <p>The long-running agent, on open weights. Holds the memory of the night and decides whether to raise, hold or lower the alert.</p>
+              <span class="model-when">On events</span>
+            </article>
+          </div>
+          <p class="oss">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21" /></svg>
+            Open source under the MIT license — <a href="https://github.com/spartanoscar/vigiax" rel="noopener">read the code on GitHub</a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- ─── FAQ ─── -->
+      <section class="section faq tinted" id="faq">
+        <div class="wrap faq-in">
+          <div>
+            <p class="kicker">FAQ</p>
+            <h2 class="h2">Questions people ask first.</h2>
+          </div>
+          <div class="faq-list">
+            <details>
+              <summary>Does it need special hardware?</summary>
+              <p>No. Any camera that can send a photo works: a phone in a browser, an IP camera, or a small board with a camera. In the field it needs a reference — a painted gauge or a fixed mark — and, for the night, an infrared camera.</p>
+            </details>
+            <details>
+              <summary>What happens at night?</summary>
+              <p>A normal camera sees little in the dark, and that is the known weak spot of camera gauges. The field node uses an infrared camera or a light; the twin has a night mode to show the difference honestly.</p>
+            </details>
+            <details>
+              <summary>What if the internet goes down?</summary>
+              <p>The node keeps measuring locally and can sound a siren on its own. Readings are stored and sent when the link returns, and LoRa or SMS can carry the alert when there is no data at all.</p>
+            </details>
+            <details>
+              <summary>Does the AI write the alert?</summary>
+              <p>It chooses the level and explains why, but it never writes the numbers. Messages come from fixed templates filled with measured values, and a verifier checks every figure before anything is sent.</p>
+            </details>
+            <details>
+              <summary>How much does it cost to run?</summary>
+              <p>Segmentation runs every few seconds and costs a fraction of a cent per frame. The language models only run on events, and every alert logs its tokens and cost, so the bill per stream is known, not guessed.</p>
+            </details>
+            <details>
+              <summary>Can I use it for my stream?</summary>
+              <p>The code is open source under the MIT license. Try the twin first, then read the repository on GitHub to run a node with your own camera.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Final CTA ─── -->
+      <section class="final dark">
+        <div class="final-bg" aria-hidden="true"></div>
+        <div class="wrap final-in">
+          <h2 class="h2">Raise the water <span class="grad">yourself.</span></h2>
+          <p class="lead">Open the twin, trigger a flash flood and watch SAM 3.1 measure it, frame by frame.</p>
+          <div class="cta-row center">
+            <a class="btn btn-primary btn-lg" href="/twin/">
+              Try the live twin
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </a>
+            <a class="btn btn-ghost btn-lg" href="https://github.com/spartanoscar/vigiax" rel="noopener">View on GitHub</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-in">
+        <div class="footer-brand">
+          <a class="logo" href="/" aria-label="Vigiax home">
+            <img src="/favicon.svg" alt="" width="28" height="28" />
+            <span>Vigiax</span>
+          </a>
+          <p>Flash-flood early warning for mountain streams. Made in Colombia.</p>
+        </div>
+        <nav class="footer-links" aria-label="Footer">
+          <a href="/twin/">Live twin</a>
+          <a href="#how">How it works</a>
+          <a href="#faq">FAQ</a>
+          <a href="https://github.com/spartanoscar/vigiax" rel="noopener">GitHub</a>
+        </nav>
+        <p class="footer-small">
+          Built during the Meta Global AI Developer Hackathon, 2026 · Open source, MIT license · vigiax.bukivo.com
+        </p>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/landing.ts"></script>
   </body>
 </html>

@@ -103,7 +103,7 @@ async function sendFrame() {
     else $("send-state").textContent = body.error ?? `Error ${res.status}`;
     return;
   }
-  $("send-state").textContent = `Frame sent ${new Date().toLocaleTimeString()}`;
+  $("send-state").textContent = `Frame sent ${new Date().toLocaleTimeString("en-US")}`;
   show(body as Summary);
 }
 

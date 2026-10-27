@@ -1,0 +1,14 @@
+# Vigiax
+
+> Flash-flood early warning from any camera. SAM 3.1 measures the water level against a gauge every few seconds,
+> Muse Spark reads the scene when something changes, and a long-running agent on Muse Spark Open decides the alert
+> level and warns the community on WhatsApp with verified, template-based messages. Open source (MIT).
+
+## Pages
+
+- [Home](https://vigiax.bukivo.com/): what Vigiax is, how it works, low-connectivity design, FAQ
+- [Live twin](https://vigiax.bukivo.com/twin/): a 3D mountain stream in the browser; start the camera node, trigger a flash flood and watch SAM 3.1 measure it
+
+## Code
+
+- [GitHub repository](https://github.com/spartanoscar/vigiax): Go service, web twin, evaluation
