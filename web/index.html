@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vigiax — digital twin</title>
+    <meta name="description" content="A mountain stream with a camera node: raise the water and watch SAM 3.1 measure it." />
+  </head>
+  <body>
+    <div id="view"></div>
+    <aside id="panel">
+      <header>
+        <h1>Vigiax</h1>
+        <p>Digital twin · station <code id="station-id">twin</code></p>
+      </header>
+
+      <section class="feed">
+        <div class="feed-frame">
+          <canvas id="feed"></canvas>
+          <canvas id="feed-overlay"></canvas>
+        </div>
+        <div class="feed-meta"><span id="send-state">Camera node idle</span><span id="sam-ms"></span></div>
+      </section>
+
+      <section class="numbers">
+        <div><span class="k">True level</span><span class="v" id="true-level">–</span></div>
+        <div><span class="k">Measured by SAM</span><span class="v" id="measured-level">–</span></div>
+        <div><span class="k">Rise, 5 min</span><span class="v" id="rise">–</span></div>
+        <div><span class="k">Model cost today</span><span class="v" id="cost">–</span></div>
+      </section>
+
+      <canvas id="chart" height="160"></canvas>
+
+      <section class="controls">
+        <label for="level">Water level <output id="level-out"></output></label>
+        <input type="range" id="level" min="0.2" max="3.6" step="0.01" value="0.45" />
+        <label for="mud">Mud <output id="mud-out"></output></label>
+        <input type="range" id="mud" min="0" max="1" step="0.01" value="0.15" />
+        <div class="row">
+          <button id="surge">Trigger surge</button>
+          <select id="surge-min" aria-label="Surge duration">
+            <option value="2">in 2 min</option>
+            <option value="5" selected>in 5 min</option>
+            <option value="10">in 10 min</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="send" class="primary">Start camera node</button>
+          <button id="calibrate">Calibrate</button>
+        </div>
+        <p class="hint" id="calib-state">No calibration yet</p>
+      </section>
+    </aside>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

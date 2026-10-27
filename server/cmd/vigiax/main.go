@@ -4,11 +4,12 @@
 //	POST /api/stations/{id}/frames       JPEG body → reading
 //	POST /api/stations/{id}/calibration  JPEG body (read the gauge) or JSON two-point calibration
 //	GET  /api/stations                   stations with their last reading and rise rates
+//	GET  /api/stations/{id}              one station
 //	GET  /api/stations/{id}/readings     ?minutes=60
 //	GET  /api/events                     server-sent events
 //
 // Environment: MODEL_API_KEY (required), ADDR (:8790), DATA_DIR (var),
-// MIN_FRAME_SECONDS (5), DAILY_BUDGET_USD (5).
+// MIN_FRAME_SECONDS (5), DAILY_BUDGET_USD (3), IP_DAILY_BUDGET_USD (0.5).
 package main
 
 import (
@@ -18,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -59,7 +61,7 @@ func main() {
 		meta:     meta.NewClient(key),
 		dir:      filepath.Join(dir, "stations"),
 		minFrame: time.Duration(envFloat("MIN_FRAME_SECONDS", 5) * float64(time.Second)),
-		budget:   &budget{limit: envFloat("DAILY_BUDGET_USD", 5)},
+		budget:   &budget{limit: envFloat("DAILY_BUDGET_USD", 3), perIP: envFloat("IP_DAILY_BUDGET_USD", 0.5)},
 		hub:      newHub(),
 		stations: map[string]*station.Station{},
 		lastAt:   map[string]time.Time{},
@@ -72,11 +74,12 @@ func main() {
 	mux.HandleFunc("POST /api/stations/{id}/frames", s.postFrame)
 	mux.HandleFunc("POST /api/stations/{id}/calibration", s.postCalibration)
 	mux.HandleFunc("GET /api/stations", s.getStations)
+	mux.HandleFunc("GET /api/stations/{id}", s.getStation)
 	mux.HandleFunc("GET /api/stations/{id}/readings", s.getReadings)
 	mux.HandleFunc("GET /api/events", s.hub.serve)
 
 	addr := env("ADDR", ":8790")
-	log.Printf("vigiax listening on %s, data in %s, budget %.2f USD/day", addr, dir, s.budget.limit)
+	log.Printf("vigiax listening on %s, data in %s, budget %.2f USD/day (%.2f per visitor)", addr, dir, s.budget.limit, s.budget.perIP)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
@@ -140,7 +143,9 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	id := st.Config().ID
 	s.mu.Lock()
-	wait := s.lastAt[id].Add(s.minFrame).Sub(now)
+	// 10 % slack: a node timing its frames to the interval must not be refused
+	// for arriving a few milliseconds early.
+	wait := s.lastAt[id].Add(s.minFrame * 9 / 10).Sub(now)
 	if wait <= 0 {
 		s.lastAt[id] = now
 	}
@@ -150,14 +155,15 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 		httpError(w, http.StatusTooManyRequests, fmt.Errorf("one frame every %s per station", s.minFrame))
 		return
 	}
-	if !s.budget.allow(now) {
-		httpError(w, http.StatusServiceUnavailable, errors.New("daily model budget reached"))
+	ip := clientIP(r)
+	if err := s.budget.allow(now, ip); err != nil {
+		httpError(w, http.StatusServiceUnavailable, err)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 	rd, err := st.Measure(ctx, s.meta, img, now)
-	s.budget.spend(now, rd.CostUSD)
+	s.budget.spend(now, ip, rd.CostUSD)
 	if err != nil {
 		httpError(w, http.StatusBadGateway, err)
 		return
@@ -193,14 +199,14 @@ func (s *server) postCalibration(w http.ResponseWriter, r *http.Request) {
 		}
 		cal, err = gauge.TwoPoint(p.Y1, p.V1, p.Y2, p.V2, p.Unit, p.X1, p.X2)
 	} else {
-		now := time.Now()
-		if !s.budget.allow(now) {
-			httpError(w, http.StatusServiceUnavailable, errors.New("daily model budget reached"))
+		now, ip := time.Now(), clientIP(r)
+		if err := s.budget.allow(now, ip); err != nil {
+			httpError(w, http.StatusServiceUnavailable, err)
 			return
 		}
 		var cost float64
 		cal, cost, err = gauge.Calibrate(r.Context(), s.meta, scene.DefaultModel, body)
-		s.budget.spend(now, cost)
+		s.budget.spend(now, ip, cost)
 	}
 	if err != nil {
 		code := http.StatusBadGateway
@@ -234,6 +240,17 @@ func (s *server) getStations(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"stations": out, "spent_today_usd": s.budget.today(now), "budget_usd": s.budget.limit})
 }
 
+func (s *server) getStation(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	st, ok := s.stations[r.PathValue("id")]
+	s.mu.Unlock()
+	if !ok {
+		httpError(w, http.StatusNotFound, errors.New("no such station"))
+		return
+	}
+	writeJSON(w, summarize(st, time.Now()))
+}
+
 func (s *server) getReadings(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	st, ok := s.stations[r.PathValue("id")]
@@ -249,34 +266,44 @@ func (s *server) getReadings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, st.Readings(time.Now().Add(-time.Duration(minutes)*time.Minute)))
 }
 
-// budget caps model spending per calendar day (Colombia time).
+// budget caps model spending per calendar day (Colombia time), in total and
+// per visitor, so one open tab cannot use up the day for everyone.
 type budget struct {
 	mu    sync.Mutex
 	limit float64
+	perIP float64
 	day   string
 	spent float64
+	byIP  map[string]float64
 }
 
 var bogota = time.FixedZone("COT", -5*3600)
 
 func (b *budget) roll(now time.Time) {
 	if d := now.In(bogota).Format(time.DateOnly); d != b.day {
-		b.day, b.spent = d, 0
+		b.day, b.spent, b.byIP = d, 0, map[string]float64{}
 	}
 }
 
-func (b *budget) allow(now time.Time) bool {
+func (b *budget) allow(now time.Time, ip string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.roll(now)
-	return b.spent < b.limit
+	if b.spent >= b.limit {
+		return errors.New("the demo's model budget for today is used up; it resets at midnight Colombia time")
+	}
+	if b.byIP[ip] >= b.perIP {
+		return errors.New("you have used today's demo budget for your connection; it resets at midnight Colombia time")
+	}
+	return nil
 }
 
-func (b *budget) spend(now time.Time, usd float64) {
+func (b *budget) spend(now time.Time, ip string, usd float64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.roll(now)
 	b.spent += usd
+	b.byIP[ip] += usd
 }
 
 func (b *budget) today(now time.Time) float64 {
@@ -284,6 +311,21 @@ func (b *budget) today(now time.Time) float64 {
 	defer b.mu.Unlock()
 	b.roll(now)
 	return b.spent
+}
+
+// clientIP is the visitor's address. X-Real-IP is trusted only from a proxy on
+// this machine (nginx, which resolves it from Cloudflare's CF-Connecting-IP).
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+		if real := r.Header.Get("X-Real-IP"); real != "" {
+			return real
+		}
+	}
+	return host
 }
 
 // hub fans events out to every connected dashboard.
