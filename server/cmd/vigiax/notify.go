@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -305,7 +306,38 @@ func (h *waHook) handle(m whatsapp.Incoming) {
 		reply("You're in. For the next 24 hours you'll get the alerts of station " + id + " here.\n\nTry it: start the camera node in the twin and trigger a flash flood. Send STOP to leave.")
 		return
 	}
-	reply("Hi! This is Vigiax, flash-flood early warning.\n\nTo get a station's alerts, send ALERTS and its code, for example: ALERTS twin-ab12cd\nYour code is in the Alerts panel at vigiax.bukivo.com/twin/\n\nSend STOP to leave.")
+	// No code: someone who started on the phone. Already signed up: remind
+	// them of their station. New: give them a twin station of their own, so
+	// the flow works in either order.
+	if sub := h.s.subs.touch(m.From, now); sub != nil {
+		reply("You're getting the alerts of station " + sub.Station + ".\n\nOpen " + twinLink(sub.Station) +
+			", start the camera node and trigger a flash flood.\n\nSend STOP to leave.")
+		return
+	}
+	id := newTwinID()
+	if _, err := h.s.station(id); err != nil {
+		log.Printf("whatsapp: new station: %v", err)
+		return
+	}
+	if err := h.s.subs.add(m.From, id, "en", now); err != nil {
+		log.Printf("whatsapp: subscribe: %v", err)
+		return
+	}
+	reply("Hi! This is Vigiax, flash-flood early warning.\n\nYour station is " + id + ", and for the next 24 hours you'll get its alerts here.\n\nOpen " +
+		twinLink(id) + ", start the camera node and trigger a flash flood.\n\nSend STOP to leave.")
+}
+
+func twinLink(id string) string { return "https://vigiax.bukivo.com/twin/?station=" + id }
+
+// newTwinID makes a station id like the dashboard's own: twin- and six base-36 characters.
+func newTwinID() string {
+	const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
+	b := make([]byte, 6)
+	rand.Read(b)
+	for i := range b {
+		b[i] = alphabet[int(b[i])%len(alphabet)]
+	}
+	return "twin-" + string(b)
 }
 
 func contains(xs []string, x string) bool {

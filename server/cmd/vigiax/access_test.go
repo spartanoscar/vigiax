@@ -104,3 +104,10 @@ func TestStationIn(t *testing.T) {
 		t.Error("STOP matching")
 	}
 }
+
+func TestNewTwinIDLooksLikeTheDashboards(t *testing.T) {
+	id := newTwinID()
+	if stationIn("ALERTS "+id) != id || len(id) != 11 {
+		t.Fatalf("new id %q is not recognised as a station code", id)
+	}
+}

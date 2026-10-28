@@ -4,22 +4,10 @@ import "./style.css";
 import { World, GAUGE_POS, GAUGE_HEIGHT, type WorldState } from "./world";
 import { CameraNode, FRAME_W, FRAME_H } from "./camera-node";
 import { events } from "./events";
+import { STATION } from "./station";
 
 const FRAME_SECONDS = 5;
 const SESSION_MINUTES = 5; // the camera node stops by itself: a surge fits, an open tab costs little
-
-// Each visitor gets an own station, so two people raising the water at once
-// don't mix their readings.
-const STATION = (() => {
-  const fresh = () => "twin-" + Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => (b % 36).toString(36)).join("");
-  try {
-    const id = localStorage.getItem("vigiax-station") ?? fresh();
-    localStorage.setItem("vigiax-station", id);
-    return id;
-  } catch {
-    return fresh();
-  }
-})();
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 $("station-id").textContent = STATION;
