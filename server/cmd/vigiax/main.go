@@ -10,7 +10,8 @@
 //	GET  /api/events                     server-sent events
 //
 // Environment: MODEL_API_KEY (required), ADDR (:8790), DATA_DIR (var),
-// MIN_FRAME_SECONDS (5), DAILY_BUDGET_USD (3), IP_DAILY_BUDGET_USD (0.5).
+// MIN_FRAME_SECONDS (5), DAILY_BUDGET_USD (3), IP_DAILY_BUDGET_USD (0.5),
+// LIVE_DAILY_BUDGET_USD (0.5, live stations, apart from the visitors' budget).
 package main
 
 import (
@@ -41,7 +42,8 @@ type server struct {
 	meta     *meta.Client
 	dir      string
 	minFrame time.Duration
-	budget   *budget
+	budget   *budget // visitors: frames and calibrations posted to the API
+	live     *budget // live stations, so visitors cannot use up their day
 	hub      *hub
 
 	mu       sync.Mutex
@@ -62,7 +64,8 @@ func main() {
 		meta:     meta.NewClient(key),
 		dir:      filepath.Join(dir, "stations"),
 		minFrame: time.Duration(envFloat("MIN_FRAME_SECONDS", 5) * float64(time.Second)),
-		budget:   &budget{limit: envFloat("DAILY_BUDGET_USD", 3), perIP: envFloat("IP_DAILY_BUDGET_USD", 0.5)},
+		budget:   loadBudget(filepath.Join(dir, "budget.json"), envFloat("DAILY_BUDGET_USD", 3), envFloat("IP_DAILY_BUDGET_USD", 0.5)),
+		live:     loadBudget(filepath.Join(dir, "budget-live.json"), envFloat("LIVE_DAILY_BUDGET_USD", 0.5), envFloat("LIVE_DAILY_BUDGET_USD", 0.5)),
 		hub:      newHub(),
 		stations: map[string]*station.Station{},
 		lastAt:   map[string]time.Time{},
@@ -253,7 +256,8 @@ func (s *server) getStations(w http.ResponseWriter, r *http.Request) {
 	for _, st := range sts {
 		out = append(out, summarize(st, now))
 	}
-	writeJSON(w, map[string]any{"stations": out, "spent_today_usd": s.budget.today(now), "budget_usd": s.budget.limit})
+	writeJSON(w, map[string]any{"stations": out, "spent_today_usd": s.budget.today(now) + s.live.today(now),
+		"budget_usd": s.budget.limit + s.live.limit})
 }
 
 func (s *server) getStation(w http.ResponseWriter, r *http.Request) {
@@ -283,9 +287,11 @@ func (s *server) getReadings(w http.ResponseWriter, r *http.Request) {
 }
 
 // budget caps model spending per calendar day (Colombia time), in total and
-// per visitor, so one open tab cannot use up the day for everyone.
+// per visitor, so one open tab cannot use up the day for everyone. It is saved
+// after every charge, so a restart does not reset the day.
 type budget struct {
 	mu    sync.Mutex
+	path  string
 	limit float64
 	perIP float64
 	day   string
@@ -293,10 +299,38 @@ type budget struct {
 	byIP  map[string]float64
 }
 
+type budgetFile struct {
+	Day   string             `json:"day"`
+	Spent float64            `json:"spent_usd"`
+	ByIP  map[string]float64 `json:"by_ip_usd"`
+}
+
+func loadBudget(path string, limit, perIP float64) *budget {
+	b := &budget{path: path, limit: limit, perIP: perIP}
+	var f budgetFile
+	if data, err := os.ReadFile(path); err == nil && json.Unmarshal(data, &f) == nil {
+		b.day, b.spent, b.byIP = f.Day, f.Spent, f.ByIP
+	}
+	return b
+}
+
+// save writes the day's spending; b.mu must be held.
+func (b *budget) save() {
+	data, _ := json.Marshal(budgetFile{Day: b.day, Spent: b.spent, ByIP: b.byIP})
+	tmp := b.path + ".tmp"
+	err := os.WriteFile(tmp, data, 0o644)
+	if err == nil {
+		err = os.Rename(tmp, b.path)
+	}
+	if err != nil {
+		log.Printf("budget: %v", err)
+	}
+}
+
 var bogota = time.FixedZone("COT", -5*3600)
 
 func (b *budget) roll(now time.Time) {
-	if d := now.In(bogota).Format(time.DateOnly); d != b.day {
+	if d := now.In(bogota).Format(time.DateOnly); d != b.day || b.byIP == nil {
 		b.day, b.spent, b.byIP = d, 0, map[string]float64{}
 	}
 }
@@ -320,6 +354,7 @@ func (b *budget) spend(now time.Time, ip string, usd float64) {
 	b.roll(now)
 	b.spent += usd
 	b.byIP[ip] += usd
+	b.save()
 }
 
 func (b *budget) today(now time.Time) float64 {

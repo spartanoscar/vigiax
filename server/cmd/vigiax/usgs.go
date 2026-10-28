@@ -66,16 +66,27 @@ func (s *server) pollUSGS(ctx context.Context, st *station.Station) error {
 		return err
 	}
 	// The gage reference is a bonus: the frames are measured without it.
-	gage, err := usgs.GageHeights(ctx, cfg.Source.Site, since.Add(-time.Hour), now)
+	gage, err := usgs.GageHeights(ctx, cfg.Source.Site, now.Add(-usgsBackfill-time.Hour), now)
 	if err != nil {
 		log.Printf("%s: gage: %v", cfg.ID, err)
+	}
+	// Gages publish up to an hour after the camera: complete earlier readings.
+	for _, r := range st.Readings(now.Add(-usgsBackfill)) {
+		if r.RefCm != nil {
+			continue
+		}
+		if g, ok := usgs.Nearest(gage, r.T, 30*time.Minute); ok {
+			if _, err := st.SetRef(r.T, g*ft2cm); err != nil {
+				return err
+			}
+		}
 	}
 	for _, f := range files {
 		t, err := usgs.FrameTime(f)
 		if err != nil || !t.After(since) {
 			continue
 		}
-		if err := s.budget.allow(now, "live:"+cfg.ID); err != nil {
+		if err := s.live.allow(now, cfg.ID); err != nil {
 			return err
 		}
 		u := usgs.FrameURL(cfg.Source.Camera, f)
@@ -89,7 +100,7 @@ func (s *server) pollUSGS(ctx context.Context, st *station.Station) error {
 			rd.RefCm = &cm
 		}
 		rd, err = st.MeasureFrame(ctx, s.meta, img, rd)
-		s.budget.spend(now, "live:"+cfg.ID, rd.CostUSD)
+		s.live.spend(now, cfg.ID, rd.CostUSD)
 		if err != nil {
 			return err
 		}

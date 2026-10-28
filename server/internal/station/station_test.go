@@ -53,3 +53,31 @@ func TestRiseAndReopen(t *testing.T) {
 		t.Fatal("accepted an unsafe station id")
 	}
 }
+
+func TestSetRefSurvivesReopen(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(dir, "ref-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t0 := time.Date(2026, 10, 28, 12, 0, 0, 0, time.UTC)
+	for i := range 3 {
+		if err := s.append(Reading{T: t0.Add(time.Duration(i) * time.Hour), LevelCm: level(130)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if ok, err := s.SetRef(t0.Add(time.Hour), 119); !ok || err != nil {
+		t.Fatalf("SetRef: %v %v", ok, err)
+	}
+	if ok, _ := s.SetRef(t0.Add(30*time.Minute), 119); ok {
+		t.Fatal("SetRef matched a time without a reading")
+	}
+	s, err = Open(dir, "ref-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs := s.Readings(t0.Add(-time.Second))
+	if len(rs) != 3 || rs[1].RefCm == nil || *rs[1].RefCm != 119 || rs[0].RefCm != nil || !rs[2].T.Equal(t0.Add(2*time.Hour)) {
+		t.Fatalf("after reopen: %+v", rs)
+	}
+}

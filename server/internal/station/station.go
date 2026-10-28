@@ -100,12 +100,20 @@ func Open(dir, id string) (*Station, error) {
 	}
 	defer f.Close()
 	sc := bufio.NewScanner(f)
+	byT := map[time.Time]int{} // a later line for the same time is an update (SetRef)
 	for sc.Scan() {
 		var r Reading
-		if json.Unmarshal(sc.Bytes(), &r) == nil {
-			s.readings = append(s.readings, r)
+		if json.Unmarshal(sc.Bytes(), &r) != nil {
+			continue
 		}
+		if i, ok := byT[r.T]; ok {
+			s.readings[i] = r
+			continue
+		}
+		byT[r.T] = len(s.readings)
+		s.readings = append(s.readings, r)
 	}
+	sort.SliceStable(s.readings, func(i, j int) bool { return s.readings[i].T.Before(s.readings[j].T) })
 	if len(s.readings) > keep {
 		s.readings = s.readings[len(s.readings)-keep:]
 	}
@@ -179,6 +187,19 @@ func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte,
 	return rd, s.append(rd)
 }
 
+// SetRef adds the official gage level to the reading taken at t, for gages
+// that publish later than the camera. It reports whether there was such a reading.
+func (s *Station) SetRef(t time.Time, cm float64) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	i := sort.Search(len(s.readings), func(i int) bool { return !s.readings[i].T.Before(t) })
+	if i == len(s.readings) || !s.readings[i].T.Equal(t) {
+		return false, nil
+	}
+	s.readings[i].RefCm = &cm
+	return true, s.write(s.readings[i])
+}
+
 func (s *Station) append(r Reading) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -186,6 +207,11 @@ func (s *Station) append(r Reading) error {
 	if len(s.readings) > keep {
 		s.readings = s.readings[len(s.readings)-keep:]
 	}
+	return s.write(r)
+}
+
+// write appends one reading to the station file; s.mu must be held.
+func (s *Station) write(r Reading) error {
 	f, err := os.OpenFile(s.path(".jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
