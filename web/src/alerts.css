@@ -178,11 +178,41 @@
   .toasts { top: 60px; }
 }
 
-/* Agent console (functional first pass) */
-.agent-log { list-style: none; margin: 0; padding: 8px 10px; max-height: 220px; overflow-y: auto; display: grid; gap: 4px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); font: 12px/1.45 var(--mono); }
-.agent-log li { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: baseline; }
-.agent-log time { color: var(--muted); }
-.agent-log .kind { color: var(--accent); text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
-.agent-log [data-kind="decide"] .kind { color: var(--ok); }
-.agent-log [data-kind="escalate"] .kind, .agent-log [data-kind="error"] .kind { color: var(--flood); }
-.agent-log [data-kind="verify"] .text { color: var(--muted); }
+/* ─── Agent console: one card per run, newest first ─── */
+.agent-model { padding: 3px 9px; border-radius: 999px; font: 600 11px/1.4 var(--mono); color: var(--accent); background: rgba(56, 198, 244, 0.12); border: 1px solid rgba(56, 198, 244, 0.3); }
+.alerts .agent-lead { margin: -2px 0 12px; }
+.agent-runs { display: grid; gap: 10px; }
+.agent-empty { margin: 0; padding: 14px; border-radius: 14px; border: 1px dashed var(--line); color: var(--muted); font-size: 12px; text-align: center; }
+.run { border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); overflow: hidden; }
+.run.running { border-color: rgba(56, 198, 244, 0.45); }
+.run-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, 0.025); }
+.run-meta { font-size: 11px; color: var(--muted); }
+.run-time { margin-left: auto; flex: none; font: 11px var(--mono); color: var(--muted); }
+.level-badge[data-level="thinking"] { background: rgba(56, 198, 244, 0.16); color: var(--accent); animation: blink 1.2s ease-in-out infinite; }
+.level-badge[data-level="escalate"] { background: rgba(255, 255, 255, 0.12); color: var(--fg); }
+
+/* Steps: a thin timeline with one icon per kind. */
+.run-steps { list-style: none; margin: 0; padding: 12px 12px 4px; display: grid; }
+.step { position: relative; padding: 0 0 12px 28px; }
+.step::before { content: ""; position: absolute; left: 9px; top: 20px; bottom: 0; width: 1px; background: var(--line); }
+.step:last-child::before { display: none; }
+.step::after { content: ""; position: absolute; left: 0; top: 0; width: 19px; height: 19px; border-radius: 50%; background: rgba(255, 255, 255, 0.08) var(--ic) center / 11px no-repeat; }
+.step-head { margin: 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 12px; font-weight: 700; line-height: 19px; }
+.step-note { padding: 0 7px; border-radius: 6px; font-size: 11px; line-height: 18px; background: rgba(255, 255, 255, 0.08); }
+.step-usd { margin-left: auto; font: 11px var(--mono); color: var(--muted); font-weight: 400; }
+.step-body { margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; color: #c9d6e8; }
+.step[data-kind="wake"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23facc15'%3E%3Cpath d='M13 2 4 14h7l-1 8 9-12h-7z'/%3E%3C/svg%3E"); }
+.step[data-kind="scene"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338c6f4' stroke-width='2.4'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E"); }
+.step[data-kind="scene"] .step-label { color: var(--accent); }
+.step[data-kind="think"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a78bfa'%3E%3Cpath d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z'/%3E%3C/svg%3E"); }
+.step[data-kind="think"] .step-label { color: #c4b5fd; }
+.step[data-kind="verify"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234ade80' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E"); }
+.step[data-kind="verify"] .step-label { color: var(--ok); }
+.step[data-kind="verify"][data-ok="false"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff4d4f' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6 6 18'/%3E%3C/svg%3E"); }
+.step[data-kind="verify"][data-ok="false"] .step-label { color: var(--flood); }
+.step[data-kind="verify"][data-ok="false"]::after { background-color: rgba(255, 77, 79, 0.16); }
+.step[data-kind="escalate"], .step[data-kind="error"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ff4d4f'%3E%3Cpath d='M11 6h2v8h-2zM11 16h2v2h-2z'/%3E%3C/svg%3E"); }
+.step[data-kind="escalate"] .step-label, .step[data-kind="error"] .step-label { color: var(--flood); }
+/* An answer the verifier sent back. */
+.step.rejected .step-body { text-decoration: line-through; text-decoration-color: rgba(255, 77, 79, 0.6); color: var(--muted); }
+.step.rejected .step-note { opacity: 0.6; }

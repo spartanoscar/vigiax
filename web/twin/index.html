@@ -231,6 +231,15 @@
         </div>
       </section>
 
+      <section class="agent" aria-labelledby="agent-title">
+        <div class="section-head">
+          <h3 id="agent-title">Agent console</h3>
+          <span class="agent-model">Muse Spark Open</span>
+        </div>
+        <p class="hint agent-lead">The rules raise alerts instantly. When they change level, the agent wakes, looks at the scene and may raise the alert sooner, never lower it. A verifier checks every number it cites.</p>
+        <div id="agent-log" class="agent-runs" aria-live="polite"></div>
+      </section>
+
       <form id="alerts-form" class="levels">
         <div class="section-head"><h3>Levels</h3><span id="levels-hint" class="muted">Tap one to change it</span></div>
         <div id="levels"></div>
@@ -252,11 +261,6 @@
         </div>
       </form>
 
-      <section class="agent" aria-labelledby="agent-title">
-        <h3 id="agent-title">Agent console <span class="muted">Muse Spark Open</span></h3>
-        <ol id="agent-log" class="agent-log" aria-live="polite"></ol>
-        <p class="hint">Wakes when a rule changes level, looks at the scene with Muse Spark and decides whether the alert should go higher. It never lowers one, and every number it cites is checked against the measurements.</p>
-      </section>
 
       <section class="history" aria-labelledby="history-title">
         <h3 id="history-title">Recent changes</h3>
