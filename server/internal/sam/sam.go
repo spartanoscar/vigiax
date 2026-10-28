@@ -91,7 +91,12 @@ func (o *Object) At(x, y int) bool {
 
 // Waterline is the median topmost masked row over frame columns x0..x1, across
 // all objects; ok is false when no column has a masked pixel.
-func (r *Result) Waterline(x0, x1 int) (y int, ok bool) {
+func (r *Result) Waterline(x0, x1 int) (y int, ok bool) { return r.WaterlineBelow(x0, x1, 0) }
+
+// WaterlineBelow is Waterline searching only from row yMin down: above the top
+// of a gauge, the columns cross the far side of the stream, whose water is not
+// the water at the gauge.
+func (r *Result) WaterlineBelow(x0, x1, yMin int) (y int, ok bool) {
 	var tops []int
 	for x := max(x0, 0); x <= min(x1, r.FrameW-1); x++ {
 		top := -1
@@ -100,7 +105,7 @@ func (r *Result) Waterline(x0, x1 int) (y int, ok bool) {
 			if x < o.Box.X1 || x > o.Box.X2 {
 				continue
 			}
-			for y := o.Box.Y1; y <= o.Box.Y2 && (top < 0 || y < top); y++ {
+			for y := max(o.Box.Y1, yMin); y <= o.Box.Y2 && (top < 0 || y < top); y++ {
 				if o.At(x, y) {
 					top = y
 					break

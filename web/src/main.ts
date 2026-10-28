@@ -148,7 +148,7 @@ async function calibrateFromGeometry() {
   const res = await fetch(`/api/stations/${STATION}/calibration`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ Y1: hi.y, V1: 3.5, Y2: lo.y, V2: 0.5, Unit: "M", X1: Math.round(Math.min(left.x, right.x)), X2: Math.round(Math.max(left.x, right.x)) }),
+    body: JSON.stringify({ Y1: hi.y, V1: 3.5, Y2: lo.y, V2: 0.5, Unit: "M", X1: Math.round(Math.min(left.x, right.x)), X2: Math.round(Math.max(left.x, right.x)), Top: GAUGE_HEIGHT }),
   });
   show((await res.json()) as Summary);
 }

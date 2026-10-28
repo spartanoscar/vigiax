@@ -16,7 +16,8 @@ func testServer(t *testing.T) *server {
 	dir := t.TempDir()
 	return &server{dir: dir, hub: newHub(), access: newAccess("admin-code", "judge-code"),
 		budget: loadBudget(dir+"/b.json", 3, 0.5), live: loadBudget(dir+"/l.json", 0.5, 0.5),
-		stations: map[string]*station.Station{}, lastAt: map[string]time.Time{}, alertState: map[string]*stationAlerts{}}
+		stations: map[string]*station.Station{}, lastAt: map[string]time.Time{}, alertState: map[string]*stationAlerts{},
+		agentState: map[string]*agentRuns{}, frames: map[string]frame{}}
 }
 
 func signIn(t *testing.T, s *server, code string) (*http.Cookie, int) {

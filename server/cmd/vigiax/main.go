@@ -14,7 +14,8 @@
 // LIVE_DAILY_BUDGET_USD (0.5, live stations, apart from the visitors' budget),
 // JUDGE_DAILY_BUDGET_USD (2, per judge), ADMIN_CODE and JUDGE_CODE (access codes),
 // WA_TOKEN, WA_PHONE_ID, WA_NUMBER, WA_APP_SECRET, WA_VERIFY_TOKEN and
-// WA_GRAPH_VERSION (WhatsApp alerts; off without a token).
+// WA_GRAPH_VERSION (WhatsApp alerts; off without a token), BASETEN_API_KEY
+// (the agent, Muse Spark Open) and AGENT_DAILY_BUDGET_USD (1).
 package main
 
 import (
@@ -33,6 +34,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spartanoscar/vigiax/server/internal/agent"
 	"github.com/spartanoscar/vigiax/server/internal/alert"
 	"github.com/spartanoscar/vigiax/server/internal/gauge"
 	"github.com/spartanoscar/vigiax/server/internal/meta"
@@ -53,6 +55,9 @@ type server struct {
 	access  *access
 	judgeIP float64 // per-visitor budget with a judge's or the admin's code
 
+	agent       *agent.Baseten // Muse Spark Open; nil without BASETEN_API_KEY
+	agentBudget *budget
+
 	notify   func(id string, c *alert.Config, e alert.Event) // WhatsApp; nil when not configured
 	subs     *subscribers
 	waNumber string
@@ -61,6 +66,8 @@ type server struct {
 	stations   map[string]*station.Station
 	lastAt     map[string]time.Time
 	alertState map[string]*stationAlerts
+	agentState map[string]*agentRuns
+	frames     map[string]frame // last frame per station, for the agent's look at the scene
 }
 
 func main() {
@@ -73,17 +80,25 @@ func main() {
 		log.Fatal(err)
 	}
 	s := &server{
-		meta:       meta.NewClient(key),
-		dir:        filepath.Join(dir, "stations"),
-		minFrame:   time.Duration(envFloat("MIN_FRAME_SECONDS", 5) * float64(time.Second)),
-		budget:     loadBudget(filepath.Join(dir, "budget.json"), envFloat("DAILY_BUDGET_USD", 3), envFloat("IP_DAILY_BUDGET_USD", 0.5)),
-		live:       loadBudget(filepath.Join(dir, "budget-live.json"), envFloat("LIVE_DAILY_BUDGET_USD", 0.5), envFloat("LIVE_DAILY_BUDGET_USD", 0.5)),
-		hub:        newHub(),
-		access:     newAccess(os.Getenv("ADMIN_CODE"), os.Getenv("JUDGE_CODE")),
-		judgeIP:    envFloat("JUDGE_DAILY_BUDGET_USD", 2),
-		stations:   map[string]*station.Station{},
-		lastAt:     map[string]time.Time{},
-		alertState: map[string]*stationAlerts{},
+		meta:        meta.NewClient(key),
+		dir:         filepath.Join(dir, "stations"),
+		minFrame:    time.Duration(envFloat("MIN_FRAME_SECONDS", 5) * float64(time.Second)),
+		budget:      loadBudget(filepath.Join(dir, "budget.json"), envFloat("DAILY_BUDGET_USD", 3), envFloat("IP_DAILY_BUDGET_USD", 0.5)),
+		live:        loadBudget(filepath.Join(dir, "budget-live.json"), envFloat("LIVE_DAILY_BUDGET_USD", 0.5), envFloat("LIVE_DAILY_BUDGET_USD", 0.5)),
+		hub:         newHub(),
+		access:      newAccess(os.Getenv("ADMIN_CODE"), os.Getenv("JUDGE_CODE")),
+		judgeIP:     envFloat("JUDGE_DAILY_BUDGET_USD", 2),
+		stations:    map[string]*station.Station{},
+		lastAt:      map[string]time.Time{},
+		alertState:  map[string]*stationAlerts{},
+		agentState:  map[string]*agentRuns{},
+		frames:      map[string]frame{},
+		agentBudget: loadBudget(filepath.Join(dir, "budget-agent.json"), envFloat("AGENT_DAILY_BUDGET_USD", 1), envFloat("AGENT_DAILY_BUDGET_USD", 1)),
+	}
+	if k := os.Getenv("BASETEN_API_KEY"); k != "" {
+		s.agent = agent.NewBaseten(k)
+	} else {
+		log.Print("agent off: BASETEN_API_KEY not set")
 	}
 	if err := s.loadStations(); err != nil {
 		log.Fatal(err)
@@ -102,6 +117,7 @@ func main() {
 	mux.HandleFunc("/api/access", s.handleAccess)
 	mux.HandleFunc("/api/stations/{id}/alerts", s.handleAlerts)
 	mux.HandleFunc("POST /api/stations/{id}/alerts/false-alarm", s.postFalseAlarm)
+	mux.HandleFunc("GET /api/stations/{id}/agent", s.getAgent)
 	s.setupWhatsApp(mux, dir)
 
 	addr := env("ADDR", ":8790")
@@ -196,6 +212,7 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
+	s.keepFrame(id, img, now)
 	rd, err := st.Measure(ctx, s.meta, img, now)
 	s.budget.spend(now, ip, rd.CostUSD)
 	if err != nil {
@@ -212,6 +229,7 @@ type twoPoint struct {
 	Y1, V1, Y2, V2 float64
 	Unit           string
 	X1, X2         int
+	Top            *float64 // highest value on the gauge, optional
 }
 
 func (s *server) postCalibration(w http.ResponseWriter, r *http.Request) {
@@ -237,6 +255,9 @@ func (s *server) postCalibration(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		cal, err = gauge.TwoPoint(p.Y1, p.V1, p.Y2, p.V2, p.Unit, p.X1, p.X2)
+		if err == nil && p.Top != nil {
+			cal.Top = p.Top
+		}
 	} else {
 		now, ip := time.Now(), clientIP(r)
 		if err := s.budget.allow(now, ip, s.perIP(r)); err != nil {

@@ -252,6 +252,12 @@
         </div>
       </form>
 
+      <section class="agent" aria-labelledby="agent-title">
+        <h3 id="agent-title">Agent console <span class="muted">Muse Spark Open</span></h3>
+        <ol id="agent-log" class="agent-log" aria-live="polite"></ol>
+        <p class="hint">Wakes when a rule changes level, looks at the scene with Muse Spark and decides whether the alert should go higher. It never lowers one, and every number it cites is checked against the measurements.</p>
+      </section>
+
       <section class="history" aria-labelledby="history-title">
         <h3 id="history-title">Recent changes</h3>
         <ol id="alerts-events"></ol>
@@ -281,5 +287,6 @@
     <script type="module" src="/src/main.ts"></script>
     <script type="module" src="/src/live-station.ts"></script>
     <script type="module" src="/src/alerts.ts"></script>
+    <script type="module" src="/src/agent-console.ts"></script>
   </body>
 </html>

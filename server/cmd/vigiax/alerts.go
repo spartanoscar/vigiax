@@ -197,6 +197,7 @@ func (s *server) announce(id string, c *alert.Config, e alert.Event) {
 	if s.notify != nil {
 		go s.notify(id, c, e)
 	}
+	go s.wakeAgent(id, e)
 }
 
 // editable tells whether this visitor may change a station's alerts: anyone

@@ -28,14 +28,23 @@ type Label struct {
 // Calibration maps a frame row to a gauge value: value = (ZeroY - y) / PxPerUnit.
 // Rows grow downward, so a higher water surface has a smaller y.
 type Calibration struct {
-	PxPerUnit float64 `json:"px_per_unit"`
-	ZeroY     float64 `json:"zero_y"`
-	Unit      string  `json:"unit"`   // FT, M or CM
-	ColX1     int     `json:"col_x1"` // gauge columns, where the waterline is read
-	ColX2     int     `json:"col_x2"`
-	Source    string  `json:"source"` // "labels" or "manual"
-	RMSE      float64 `json:"rmse"`   // fit residual, in gauge units
-	Labels    []Label `json:"labels,omitempty"`
+	PxPerUnit float64  `json:"px_per_unit"`
+	ZeroY     float64  `json:"zero_y"`
+	Unit      string   `json:"unit"`   // FT, M or CM
+	ColX1     int      `json:"col_x1"` // gauge columns, where the waterline is read
+	ColX2     int      `json:"col_x2"`
+	Source    string   `json:"source"` // "labels" or "manual"
+	RMSE      float64  `json:"rmse"`   // fit residual, in gauge units
+	Labels    []Label  `json:"labels,omitempty"`
+	Top       *float64 `json:"top,omitempty"` // highest value on the gauge: the waterline is not searched above it
+}
+
+// TopY is the frame row of the top of the gauge, when the calibration knows it.
+func (c *Calibration) TopY() (float64, bool) {
+	if c.Top == nil {
+		return 0, false
+	}
+	return c.ZeroY - *c.Top*c.PxPerUnit, true
 }
 
 // Value is the gauge reading at frame row y.
@@ -114,6 +123,8 @@ func Fit(labels []Label, gaugeBox sam.Box) (*Calibration, error) {
 	if c.RMSE > maxRMSE {
 		return nil, fmt.Errorf("%w: labels are not evenly spaced (residual %.2f %s)", ErrRejected, c.RMSE, c.Unit)
 	}
+	top := c.Value(float64(gaugeBox.Y1)) // the top of the gauge SAM found
+	c.Top = &top
 	return c, nil
 }
 

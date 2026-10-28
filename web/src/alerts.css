@@ -177,3 +177,12 @@
   .rule > summary { grid-template-columns: 84px 1fr auto; gap: 8px; }
   .toasts { top: 60px; }
 }
+
+/* Agent console (functional first pass) */
+.agent-log { list-style: none; margin: 0; padding: 8px 10px; max-height: 220px; overflow-y: auto; display: grid; gap: 4px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); font: 12px/1.45 var(--mono); }
+.agent-log li { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: baseline; }
+.agent-log time { color: var(--muted); }
+.agent-log .kind { color: var(--accent); text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
+.agent-log [data-kind="decide"] .kind { color: var(--ok); }
+.agent-log [data-kind="escalate"] .kind, .agent-log [data-kind="error"] .kind { color: var(--flood); }
+.agent-log [data-kind="verify"] .text { color: var(--muted); }

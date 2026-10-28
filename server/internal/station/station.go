@@ -28,6 +28,10 @@ const DefaultPrompt = "flood water"
 // keep is how many readings stay in memory: 4 hours at one frame every 5 s.
 const keep = 2880
 
+// topMargin keeps the waterline search a few rows under the top of the gauge,
+// clear of the water seen behind it.
+const topMargin = 4
+
 // MinConfidence is the SAM confidence below which a frame counts as a blind
 // camera (night, fog, a covered lens): the reading keeps no level, and a blind
 // camera never lowers the level the station last saw.
@@ -41,9 +45,10 @@ type Reading struct {
 	Confidence float64   `json:"confidence"`
 	SamMs      int64     `json:"sam_ms"`
 	CostUSD    float64   `json:"cost_usd"`
-	Blind      bool      `json:"blind,omitempty"`     // no water found with confidence: see MinConfidence
-	RefCm      *float64  `json:"ref_cm,omitempty"`    // official gage at the same time, when there is one
-	FrameURL   string    `json:"frame_url,omitempty"` // public image of the frame, for remote cameras
+	Blind      bool      `json:"blind,omitempty"`        // no water found with confidence: see MinConfidence
+	AtTop      bool      `json:"at_gauge_top,omitempty"` // the water covers the whole gauge: the level is at least LevelCm
+	RefCm      *float64  `json:"ref_cm,omitempty"`       // official gage at the same time, when there is one
+	FrameURL   string    `json:"frame_url,omitempty"`    // public image of the frame, for remote cameras
 }
 
 type Config struct {
@@ -167,11 +172,15 @@ func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte,
 			rd.Confidence = max(rd.Confidence, r.Objects[i].Confidence)
 		}
 		rd.Coverage = area / float64(r.FrameW*r.FrameH)
-		x0, x1 := 0, r.FrameW-1
+		x0, x1, yMin := 0, r.FrameW-1, 0
 		if cfg.Calib != nil {
 			x0, x1 = cfg.Calib.ColX1, cfg.Calib.ColX2
+			if top, ok := cfg.Calib.TopY(); ok {
+				yMin = int(top) + topMargin
+			}
 		}
-		if y, ok := r.Waterline(x0, x1); ok {
+		if y, ok := r.WaterlineBelow(x0, x1, yMin); ok {
+			rd.AtTop = yMin > 0 && y <= yMin+1
 			rd.WaterlineY = &y
 			if cfg.Calib != nil {
 				lv := cfg.Calib.LevelCm(float64(y))

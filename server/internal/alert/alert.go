@@ -159,7 +159,7 @@ type Event struct {
 	Reason       string    `json:"reason"`
 	LevelCm      *float64  `json:"level_cm,omitempty"`
 	RiseCmPerMin *float64  `json:"rise_cm_per_min,omitempty"`
-	By           string    `json:"by,omitempty"` // who marked a false alarm
+	By           string    `json:"by,omitempty"` // who marked a false alarm, or "agent" for its raises
 }
 
 // State follows one station's level from reading to reading.
@@ -255,6 +255,17 @@ func (s *State) Step(c *Config, o Obs) *Event {
 		s.upN, s.belowSince = 0, time.Time{}
 	}
 	return nil
+}
+
+// Raise lifts the level above what the rules set, on the agent's verified
+// decision. It never lowers: a lower or equal level returns nil.
+func (s *State) Raise(now time.Time, to Level, reason, by string, levelCm, riseCmPerMin *float64) *Event {
+	if to <= s.Level || to > Evacuate {
+		return nil
+	}
+	e := &Event{T: now, Kind: "raise", From: s.Level, To: to, Reason: reason, By: by, LevelCm: levelCm, RiseCmPerMin: riseCmPerMin}
+	s.Level, s.Since, s.upN, s.belowSince = to, now, 0, time.Time{}
+	return e
 }
 
 // FalseAlarm brings the level back to normal on a person's word and keeps it
