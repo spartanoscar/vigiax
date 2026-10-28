@@ -116,12 +116,12 @@ func TestMessage(t *testing.T) {
 	lv, rise := 192.0, 7.6
 	e := Event{T: t0, Kind: "raise", From: Attention, To: Alert, LevelCm: &lv, RiseCmPerMin: &rise}
 	es := Text(Fill(&c, e, "es"), "es")
-	want := "⚠️ ALERTA DE CRECIENTE en la quebrada del gemelo digital.\nEl agua subió 38 cm en 5 minutos y está a 1,9 m.\nQué hacer: Aléjate de la orilla y no cruces el puente.\nAviso automático de Vigiax a las 15:00. Si estás en emergencia llama al 123."
+	want := "⚠️ ALERTA DE CRECIENTE en la quebrada del gemelo digital.\nQué pasa: El agua subió 38 cm en 5 minutos y está a 1,9 m.\nQué hacer: Aléjate de la orilla y no cruces el puente.\nAviso automático de Vigiax a las 15:00. Si estás en emergencia llama al 123."
 	if es != want {
 		t.Fatalf("es:\n%s\nwant:\n%s", es, want)
 	}
 	en := Text(Fill(&c, e, "en"), "en")
-	if !strings.Contains(en, "FLASH FLOOD ALERT at the digital twin's stream.\nThe water rose 38 cm in 5 minutes and is at 1.9 m.") {
+	if !strings.Contains(en, "FLASH FLOOD ALERT at the digital twin's stream.\nWhat is happening: The water rose 38 cm in 5 minutes and is at 1.9 m.") {
 		t.Fatalf("en:\n%s", en)
 	}
 }

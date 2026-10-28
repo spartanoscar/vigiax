@@ -111,7 +111,7 @@ func facts(c *Config, e Event, en bool) string {
 // Text is the whole message as WhatsApp shows it with the approved template.
 func Text(f Fields, lang string) string {
 	if lang == "en" {
-		return fmt.Sprintf("⚠️ %s at %s.\n%s\nWhat to do: %s\nAutomatic notice from Vigiax at %s (Colombia time). In an emergency call your local emergency number.", f[0], f[1], f[2], f[3], f[4])
+		return fmt.Sprintf("⚠️ %s at %s.\nWhat is happening: %s\nWhat to do: %s\nAutomatic notice from Vigiax at %s (Colombia time). In an emergency call your local emergency number.", f[0], f[1], f[2], f[3], f[4])
 	}
-	return fmt.Sprintf("⚠️ %s en %s.\n%s\nQué hacer: %s\nAviso automático de Vigiax a las %s. Si estás en emergencia llama al 123.", f[0], f[1], f[2], f[3], f[4])
+	return fmt.Sprintf("⚠️ %s en %s.\nQué pasa: %s\nQué hacer: %s\nAviso automático de Vigiax a las %s. Si estás en emergencia llama al 123.", f[0], f[1], f[2], f[3], f[4])
 }

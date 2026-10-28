@@ -217,7 +217,23 @@ func (h *waHook) verifyHook(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, q.Get("hub.challenge"))
 }
 
-var subscribeCmd = regexp.MustCompile(`(?i)^\s*(alertas|alerts)\s+([a-z0-9][a-z0-9-]{0,39})\s*$`)
+// A sign-up names a station: "ALERTS twin-ab12cd", the whole line copied
+// from the dashboard, or just the code. ALERTAS works too.
+var (
+	stationCode  = regexp.MustCompile(`(?i)\b(twin-[a-z0-9]{6}|el-reno)\b`)
+	subscribeCmd = regexp.MustCompile(`(?i)\b(?:alerts?|alertas)\b[\s:]*([a-z0-9][a-z0-9-]{1,39})`)
+	stopCmd      = regexp.MustCompile(`(?i)^\W*(stop|unsubscribe|salir|baja)\W*$`)
+)
+
+func stationIn(text string) string {
+	if m := stationCode.FindStringSubmatch(text); m != nil {
+		return strings.ToLower(m[1])
+	}
+	if m := subscribeCmd.FindStringSubmatch(text); m != nil {
+		return strings.ToLower(m[1])
+	}
+	return ""
+}
 
 func (h *waHook) receive(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
@@ -250,65 +266,46 @@ func (h *waHook) handle(m whatsapp.Incoming) {
 		if sub == nil || sub.Station != id {
 			return
 		}
-		en := sub.Lang == "en"
 		h.s.mu.Lock()
 		st := h.s.stations[id]
 		h.s.mu.Unlock()
 		switch {
 		case kind == "false" && st != nil:
 			h.s.falseAlarm(st, "whatsapp …"+last4(m.From))
-			reply(pick(en, "Marked as a false alarm. The level goes back to normal and Vigiax waits before raising it again.",
-				"Marcada como falsa alarma. El nivel vuelve a normal y Vigiax espera antes de volver a subirlo."))
+			reply("Marked as a false alarm. The level goes back to normal, and Vigiax waits before raising it again.")
 		case kind == "ack":
 			h.s.hub.publish("ack", map[string]string{"station": id, "by": "…" + last4(m.From)})
-			reply(pick(en, "Thanks: Vigiax knows you got the alert.", "Gracias: Vigiax sabe que recibiste la alerta."))
+			reply("Thanks: Vigiax knows you got the alert.")
 		}
 		return
 	}
 	text := strings.TrimSpace(m.Text)
-	if mm := subscribeCmd.FindStringSubmatch(text); mm != nil {
-		en := strings.EqualFold(mm[1], "alerts")
-		id := strings.ToLower(mm[2])
+	if stopCmd.MatchString(text) {
+		h.s.subs.remove(m.From)
+		reply("Done: you will not receive more alerts from Vigiax.")
+		return
+	}
+	if id := stationIn(text); id != "" {
 		h.s.mu.Lock()
 		_, known := h.s.stations[id]
 		h.s.mu.Unlock()
 		if !known && !strings.HasPrefix(id, "twin-") {
-			reply(pick(en, "That station does not exist.", "Esa estación no existe."))
+			reply("There is no station " + id + ". Copy the code from the Alerts panel at vigiax.bukivo.com/twin/ (it looks like twin-ab12cd).")
 			return
 		}
 		if _, err := h.s.station(id); err != nil {
-			reply(pick(en, "That station does not exist.", "Esa estación no existe."))
+			reply("There is no station " + id + ". Copy the code from the Alerts panel at vigiax.bukivo.com/twin/ (it looks like twin-ab12cd).")
 			return
 		}
-		if err := h.s.subs.add(m.From, id, map[bool]string{true: "en", false: "es"}[en], now); err != nil {
-			reply(pick(en, "This station already has the most phones it can take. Try another one.",
-				"Esta estación ya tiene el máximo de teléfonos. Prueba con otra."))
+		if err := h.s.subs.add(m.From, id, "en", now); err != nil {
+			reply("Station " + id + " already has as many phones as it can take. Open the twin in another browser to get a new station.")
 			return
 		}
 		h.s.hub.publish("subscribed", map[string]string{"station": id})
-		reply(pick(en,
-			"You will receive the alerts of station "+id+" for 24 hours. Trigger a flash flood in the twin to try it. Write STOP to leave.",
-			"Recibirás las alertas de la estación "+id+" durante 24 horas. Dispara una creciente en el gemelo para probarlo. Escribe SALIR para dejar de recibirlas."))
+		reply("You're in. For the next 24 hours you'll get the alerts of station " + id + " here.\n\nTry it: start the camera node in the twin and trigger a flash flood. Send STOP to leave.")
 		return
 	}
-	switch strings.ToUpper(text) {
-	case "STOP", "SALIR", "BAJA":
-		h.s.subs.remove(m.From)
-		reply(pick(strings.EqualFold(text, "stop"), "Done: you will not receive more alerts.", "Listo: no recibirás más alertas."))
-		return
-	}
-	sub := h.s.subs.touch(m.From, now)
-	en := sub != nil && sub.Lang == "en"
-	reply(pick(en,
-		"This is Vigiax, flash-flood early warning. To receive a station's alerts write ALERTS followed by the station code shown in the twin (vigiax.bukivo.com/twin/). STOP to leave.",
-		"Hola, este es Vigiax, alertas tempranas de crecientes. Para recibir las alertas de una estación escribe ALERTAS y el código que muestra el gemelo (vigiax.bukivo.com/twin/). SALIR para dejar de recibirlas."))
-}
-
-func pick(en bool, english, spanish string) string {
-	if en {
-		return english
-	}
-	return spanish
+	reply("Hi! This is Vigiax, flash-flood early warning.\n\nTo get a station's alerts, send ALERTS and its code, for example: ALERTS twin-ab12cd\nYour code is in the Alerts panel at vigiax.bukivo.com/twin/\n\nSend STOP to leave.")
 }
 
 func contains(xs []string, x string) bool {

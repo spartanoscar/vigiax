@@ -1,0 +1,21 @@
+{
+  "name": "vigiax_alerta",
+  "category": "UTILITY",
+  "language": "en",
+  "kind": "alert",
+  "purpose": "English version of vigiax_alerta.json, for people who sign up with ALERTS.",
+  "notes": ["Same structure and rules as vigiax_alerta.json; must match alert.Text for \"en\"."],
+  "body": "⚠️ {{1}} at {{2}}.\nWhat is happening: {{3}}\nWhat to do: {{4}}\nAutomatic notice from Vigiax at {{5}} (Colombia time). In an emergency call your local emergency number.",
+  "footer": "Vigiax · flash-flood early warning",
+  "buttons": [
+    { "type": "QUICK_REPLY", "text": "Got it" },
+    { "type": "QUICK_REPLY", "text": "False alarm" }
+  ],
+  "vars": [
+    { "label": "level", "example": "FLASH FLOOD ALERT", "source": "alert level title (alert.Fill)" },
+    { "label": "place", "example": "the North Canadian River at El Reno, Oklahoma", "source": "station alert settings: place_en" },
+    { "label": "what is happening", "example": "The water rose 38 cm in 10 minutes and is at 1.6 m.", "source": "measured rise and level" },
+    { "label": "what to do", "example": "Keep away from the banks and do not cross the bridge.", "source": "the level's rule: action_en" },
+    { "label": "time", "example": "15:42", "source": "event time, Colombia" }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "vigiax_alerta",
+  "category": "UTILITY",
+  "language": "es",
+  "kind": "alert",
+  "purpose": "A flash-flood alert level changed at a station the person signed up for (attention, alert, evacuate, back to normal).",
+  "notes": [
+    "The text must match alert.Text in server/internal/alert/message.go: the service fills the same five values.",
+    "{{5}} is a 24-hour time (15:42): with 'p. m.' the sentence would end in two dots.",
+    "Buttons carry payloads ack:<station> and false:<station> (server/cmd/vigiax/notify.go)."
+  ],
+  "body": "⚠️ {{1}} en {{2}}.\nQué pasa: {{3}}\nQué hacer: {{4}}\nAviso automático de Vigiax a las {{5}}. Si estás en emergencia llama al 123.",
+  "footer": "Vigiax · alerta temprana de crecientes",
+  "buttons": [
+    { "type": "QUICK_REPLY", "text": "Recibido" },
+    { "type": "QUICK_REPLY", "text": "Falsa alarma" }
+  ],
+  "vars": [
+    { "label": "nivel", "example": "ALERTA DE CRECIENTE", "source": "alert level title (alert.Fill)" },
+    { "label": "lugar", "example": "Quebrada La Marinilla, puente de la vereda", "source": "station alert settings: place" },
+    { "label": "qué pasa", "example": "El agua subió 38 cm en 10 minutos y está a 1,6 m.", "source": "measured rise and level" },
+    { "label": "qué hacer", "example": "Aléjate de la orilla y no cruces el puente.", "source": "the level's rule: action" },
+    { "label": "hora", "example": "15:42", "source": "event time, Colombia" }
+  ]
+}

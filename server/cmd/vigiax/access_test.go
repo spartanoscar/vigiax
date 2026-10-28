@@ -85,3 +85,22 @@ func TestRealStationsNeedACode(t *testing.T) {
 func stationReading(t time.Time, cm float64) station.Reading {
 	return station.Reading{T: t, LevelCm: &cm, Confidence: 0.9}
 }
+
+func TestStationIn(t *testing.T) {
+	for text, want := range map[string]string{
+		"ALERTS twin-gg263i":                            "twin-gg263i",
+		"Send ALERTAS twin-gg263i to +57 300 112 8564.": "twin-gg263i",
+		"twin-GG263I":                                   "twin-gg263i",
+		"alerts el-reno":                                "el-reno",
+		"ALERTS: some-station":                          "some-station",
+		"hola":                                          "",
+		"I want alerts":                                 "",
+	} {
+		if got := stationIn(text); got != want {
+			t.Errorf("%q: got %q, want %q", text, got, want)
+		}
+	}
+	if !stopCmd.MatchString("Stop.") || stopCmd.MatchString("don't stop") {
+		t.Error("STOP matching")
+	}
+}
