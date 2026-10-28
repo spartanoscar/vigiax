@@ -17,6 +17,9 @@
 .alerts-pill:has([data-level="evacuate"]) { border-color: rgba(255, 77, 79, 0.7); animation: alarm 1.4s ease-in-out infinite; }
 .alerts-pill:has([data-level="evacuate"]) svg { color: var(--evacuate); animation: ring 1.4s ease-in-out infinite; transform-origin: 50% 15%; }
 
+.wa-on { height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; border-color: rgba(37, 211, 102, 0.45); }
+.wa-on i { width: 8px; height: 8px; border-radius: 50%; background: #25d366; box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2); }
+
 /* ─── Level badge ─── */
 .level-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font: 700 11px/1.4 var(--sans); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; background: rgba(74, 222, 128, 0.16); color: var(--ok); }
 .level-badge[data-level="attention"] { background: rgba(250, 204, 21, 0.18); color: var(--attention); }
@@ -165,6 +168,10 @@
 @media (max-width: 760px) {
   .alerts-pill { padding: 0 4px 0 10px; }
   .alerts-pill > span:not(.level-badge) { display: none; }
+  .wa-on { font-size: 0; gap: 0; padding: 0 11px; }
+  .wa-on i { width: 18px; height: 18px; border-radius: 0; box-shadow: none; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .brand { padding-right: 6px; }
+  .brand-name { display: none; }
   .alerts { top: 60px; left: 10px; right: 10px; bottom: 10px; width: auto; padding: 14px 14px 0; }
   .alerts-actions { margin: 14px -14px 0; padding: 12px 14px; }
   .rule > summary { grid-template-columns: 84px 1fr auto; gap: 8px; }

@@ -299,6 +299,7 @@ events.addEventListener("alert", (e) => {
 for (const name of ["alerts_config", "subscribed"]) {
   events.addEventListener(name, (e) => {
     const d = JSON.parse((e as MessageEvent).data);
+    if (name === "subscribed" && d.station === twin()) $("wa-on").hidden = false;
     if (!panel.hidden && d.station === stationId()) load();
   });
 }
@@ -358,8 +359,12 @@ function siren() {
   }
 }
 
-// The level badge in the top bar, before the panel is ever opened.
+// The level badge in the top bar, before the panel is ever opened, and
+// whether a phone already gets this twin's alerts on WhatsApp.
 fetch(`/api/stations/${twin()}/alerts`)
   .then((r) => r.json())
-  .then((v: View) => badge($("alert-level"), v.state.level))
+  .then((v: View) => {
+    badge($("alert-level"), v.state.level);
+    $("wa-on").hidden = !(v.subscribers > 0);
+  })
   .catch(() => {});

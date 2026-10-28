@@ -121,6 +121,7 @@
         </a>
         <nav class="nav-links" aria-label="Main">
           <a href="#how">How it works</a>
+          <a href="#whatsapp">Alerts</a>
           <a href="#offline">Low signal</a>
           <a href="#faq">FAQ</a>
           <a href="https://github.com/spartanoscar/vigiax" rel="noopener">GitHub</a>
@@ -333,24 +334,7 @@
               <li>Tokens and cost logged for every alert</li>
             </ul>
           </div>
-          <div class="band-visual chat" aria-label="Illustration: the alert as it arrives on a phone, and the checks it passed">
-            <div class="phone">
-              <div class="phone-head">
-                <img src="/favicon.svg" alt="" width="34" height="34" />
-                <div><b>Vigiax</b><span>La Honda Creek</span></div>
-              </div>
-              <div class="msg msg-watch">
-                <span class="msg-lv">Watch</span>
-                The creek is rising: <b>12 cm in 10 min</b>. Stay alert and do not cross it.
-                <time>4:12 PM</time>
-              </div>
-              <div class="msg msg-evac">
-                <span class="msg-lv">Evacuate</span>
-                It rose <b>25 cm in 10 min</b> and is carrying mud and logs. Move away from the bank now and warn your neighbours.
-                <time>4:21 PM</time>
-              </div>
-              <div class="msg msg-me">Got it, we are leaving.<time>4:22 PM</time></div>
-            </div>
+          <div class="band-visual verify-solo" aria-label="Illustration: the checks an alert passes before it is sent">
             <div class="verify">
               <p class="verify-h">Before sending</p>
               <ul>
@@ -359,6 +343,76 @@
                 <li>Level only goes up while rising</li>
                 <li>Text from template <code>evacuate</code></li>
               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Band: alerts on WhatsApp ─── -->
+      <section class="section band" id="whatsapp">
+        <div class="wrap band-in">
+          <div class="band-copy">
+            <p class="kicker">Alerts on WhatsApp</p>
+            <h2 class="h2">The warning reaches the phone <span class="hl">while there is still time.</span></h2>
+            <p class="body-lg">
+              No app to install. People near the stream sign up with one WhatsApp message, and Vigiax writes back the
+              moment the water crosses a line: what is happening, in measured numbers, and what to do. One tap answers
+              <em>Got it</em>, or flags a false alarm so the community can correct the station.
+            </p>
+            <ul class="checks">
+              <li>Sign up with one message, no app and no account</li>
+              <li>Plain words: what is happening and what to do now</li>
+              <li>Each level reaches the right people: a leader, the village group, everyone</li>
+            </ul>
+            <div class="wa-signup" id="get-alerts">
+              <h3>Get the alerts on your phone</h3>
+              <div class="wa-join">
+                <a class="wa-qr" id="wa-qr" href="https://wa.me/573001128564?text=ALERTS" target="_blank" rel="noopener" aria-label="Open WhatsApp with your sign-up message ready"></a>
+                <div class="wa-join-text">
+                  <p class="wa-qr-hint">Scan with your phone's camera. WhatsApp opens with your message ready.</p>
+                  <a class="btn btn-lg wa-open" id="wa-open" href="https://wa.me/573001128564?text=ALERTS" target="_blank" rel="noopener">Open WhatsApp</a>
+                  <p class="wa-code">Message: <code id="wa-code">ALERTS</code><br />To: <span class="wa-num">+57 300 112 8564</span></p>
+                </div>
+              </div>
+              <ol class="wa-steps">
+                <li><span>1</span>Send the WhatsApp</li>
+                <li><span>2</span><a href="/twin/">Open the twin</a></li>
+                <li><span>3</span>Trigger a flash flood</li>
+              </ol>
+            </div>
+          </div>
+          <div class="band-visual wa-visual" role="img" aria-label="A phone receiving a Vigiax evacuation alert on WhatsApp, with Got it and False alarm buttons">
+            <div class="wa-notif" aria-hidden="true">
+              <img src="/favicon.svg" alt="" width="40" height="40" />
+              <div>
+                <p class="wa-notif-top"><b>Vigiax</b><span>now</span></p>
+                <p class="wa-notif-text">⚠️ EVACUATE NOW at the digital twin's stream. The water is at 3.0 m. Go to high ground now and take children and elders with you.</p>
+              </div>
+            </div>
+            <div class="wa-phone" aria-hidden="true">
+              <div class="wa-status"><span>1:16</span><i></i></div>
+              <div class="wa-head">
+                <span class="wa-back"></span>
+                <img src="/favicon.svg" alt="" width="34" height="34" />
+                <b>Vigiax</b>
+              </div>
+              <div class="wa-chat">
+                <div class="wa-msg">
+                  <p>⚠️ FLASH FLOOD ALERT at the digital twin's stream.
+The water rose 18 cm in 5 minutes and is at 1.9 m.
+What to do: Keep away from the banks and do not cross the bridge.</p>
+                  <time>1:15 PM</time>
+                  <span class="wa-btn">Got it</span><span class="wa-btn">False alarm</span>
+                </div>
+                <div class="wa-msg wa-evac">
+                  <p>⚠️ EVACUATE NOW at the digital twin's stream.
+What is happening: The water is at 3.0 m.
+What to do: Go to high ground now and take children and elders with you.</p>
+                  <time>1:16 PM</time>
+                  <span class="wa-btn">Got it</span><span class="wa-btn">False alarm</span>
+                </div>
+              </div>
+              <div class="wa-compose"><span></span></div>
             </div>
           </div>
         </div>
