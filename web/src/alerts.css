@@ -1,0 +1,86 @@
+/* Alert settings panel, level badges and alert toasts. Functional first pass. */
+
+.hud-right { display: flex; gap: 8px; align-items: center; }
+.alerts-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px 8px 12px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 13px; }
+.alerts-pill svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.alerts-pill:hover { border-color: rgba(56, 198, 244, 0.55); }
+
+.level-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font: 700 11px/1.6 var(--sans); letter-spacing: 0.04em; text-transform: uppercase; background: rgba(74, 222, 128, 0.16); color: var(--ok); }
+.level-badge[data-level="attention"] { background: rgba(250, 204, 21, 0.18); color: #facc15; }
+.level-badge[data-level="alert"] { background: rgba(251, 146, 60, 0.2); color: #fb923c; }
+.level-badge[data-level="evacuate"] { background: rgba(255, 77, 79, 0.22); color: var(--flood); }
+
+.alerts { position: fixed; z-index: 8; top: 72px; right: 16px; bottom: 16px; width: min(460px, calc(100vw - 32px)); border-radius: var(--radius); padding: 18px; overflow-y: auto; display: grid; gap: 16px; align-content: start; animation: rise-in 0.18s ease both; }
+.alerts h2 { margin: 0; font: 700 19px/1.2 var(--display); }
+.alerts h3 { margin: 0 0 8px; font: 700 14px/1.3 var(--display); }
+.alerts .kicker { margin: 0 0 2px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.alerts-head { display: flex; justify-content: space-between; align-items: start; }
+.alerts .muted, .alerts .hint { color: var(--muted); font-size: 12px; }
+.alerts .hint { margin: 6px 0 0; }
+.alerts .k { color: var(--muted); font-size: 12px; }
+
+.alerts-station, .seg { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); }
+.alerts-station button, .seg button { flex: 1; border: 0; background: none; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.alerts-station [aria-selected="true"], .seg [aria-selected="true"] { background: rgba(56, 198, 244, 0.18); color: var(--fg); font-weight: 600; }
+.seg { flex: none; }
+.seg button { padding: 4px 10px; font-size: 11px; }
+
+.alerts-status { display: flex; gap: 10px; align-items: center; }
+.alerts-lock { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(250, 204, 21, 0.08); border: 1px solid rgba(250, 204, 21, 0.25); font-size: 13px; }
+.access { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.access input { flex: 1; min-width: 140px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); }
+
+.levels { display: grid; gap: 12px; }
+#levels { display: grid; gap: 10px; }
+.rule { margin: 0; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); display: grid; gap: 10px; min-width: 0; }
+.rule[data-level="attention"] { border-left: 3px solid #facc15; }
+.rule[data-level="alert"] { border-left: 3px solid #fb923c; }
+.rule[data-level="evacuate"] { border-left: 3px solid var(--flood); }
+.rule.off > :not(legend) { opacity: 0.45; }
+.rule legend { float: left; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0; }
+.rule .fires, .rule .who { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: 13px; }
+.rule .or { color: var(--muted); font-size: 12px; }
+.rule small { color: var(--muted); }
+.rule input[type="number"] { width: 72px; }
+.rule input:not([type="checkbox"]), .rule select, .general input { padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); }
+.rule .why { display: grid; gap: 4px; }
+.rule .why input { width: 100%; }
+.chip { display: inline-flex; gap: 4px; align-items: center; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); font-size: 12px; }
+.switch { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.rule:disabled { opacity: 0.85; }
+
+.general summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.general { display: grid; gap: 8px; }
+.general label { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 13px; margin-top: 8px; }
+.general input { width: 140px; }
+.general input[name="place"] { width: 220px; }
+
+.alerts-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.soft-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #04101f; font-weight: 700; border: 0; }
+.soft-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.preview-head { display: flex; justify-content: space-between; align-items: center; }
+.wa-bubble { margin: 0; padding: 12px 14px; border-radius: 4px 14px 14px 14px; background: #134d37; color: #e9fdf3; font: 13px/1.5 var(--sans); white-space: pre-wrap; }
+
+.wa-row { display: flex; gap: 14px; align-items: center; }
+.wa-row p { margin: 0 0 6px; font-size: 13px; }
+.wa-qr { flex: none; width: 112px; height: 112px; padding: 6px; border-radius: 12px; background: #fff; }
+.wa-qr svg { display: block; width: 100%; height: 100%; }
+
+.history ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 12px; }
+.history li { display: flex; gap: 8px; align-items: baseline; }
+.history time { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.history .why { color: var(--muted); }
+
+.toasts { position: fixed; z-index: 9; top: 72px; left: 50%; transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); display: grid; gap: 8px; }
+.toast { padding: 14px 16px; border-radius: 16px; border-left: 4px solid var(--ok); animation: rise-in 0.2s ease both; }
+.toast[data-level="attention"] { border-left-color: #facc15; }
+.toast[data-level="alert"] { border-left-color: #fb923c; }
+.toast[data-level="evacuate"] { border-left-color: var(--flood); }
+.toast pre { margin: 0 0 10px; font: 13px/1.5 var(--sans); white-space: pre-wrap; }
+.toast-actions { display: flex; gap: 8px; }
+
+@media (max-width: 640px) {
+  .alerts-pill span:not(.level-badge) { display: none; }
+  .alerts { top: 64px; left: 8px; right: 8px; width: auto; }
+}

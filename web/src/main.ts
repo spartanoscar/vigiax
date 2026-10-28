@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import "./style.css";
 import { World, GAUGE_POS, GAUGE_HEIGHT, type WorldState } from "./world";
 import { CameraNode, FRAME_W, FRAME_H } from "./camera-node";
+import { events } from "./events";
 
 const FRAME_SECONDS = 5;
 const SESSION_MINUTES = 5; // the camera node stops by itself: a surge fits, an open tab costs little
@@ -27,10 +28,16 @@ $("station-id").textContent = STATION;
 const world = new World();
 const node = new CameraNode(world);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+// Kept light on purpose: a Retina screen at full resolution and 60-120 fps
+// draws 8 million pixels per frame and heats a laptop for a low-poly valley.
+// 1.5x pixels without MSAA looks the same, and 30 fps is enough for water.
+const PIXEL_RATIO = Math.min(devicePixelRatio, 1.5);
+const renderer = new THREE.WebGLRenderer({ antialias: PIXEL_RATIO < 1.5, powerPreference: "low-power" });
+renderer.setPixelRatio(PIXEL_RATIO);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.autoUpdate = false; // trees, rocks and the gauge never move: one shadow pass
+renderer.shadowMap.needsUpdate = true;
 $("view").appendChild(renderer.domElement);
 const mainEnv = world.reflection(renderer);
 
@@ -93,6 +100,12 @@ const truth: { t: number; cm: number }[] = []; // what the twin really had when 
 const measured: { t: number; cm: number }[] = [];
 
 async function sendFrame() {
+  // A hidden tab stops animating: its frames would show water that no longer
+  // moves, and the station would measure (and pay for) a frozen stream.
+  if (document.hidden) {
+    $("send-state").textContent = "Paused while the tab is hidden";
+    return;
+  }
   const blob = await node.jpeg();
   truth.push({ t: Date.now(), cm: state.levelM * 100 });
   $("send-state").textContent = "Sending frame…";
@@ -179,7 +192,6 @@ function showError(e: unknown) {
 }
 
 // Stay in sync with readings sent from other tabs or devices.
-const events = new EventSource("/api/events");
 events.addEventListener("reading", (e) => {
   const s = JSON.parse((e as MessageEvent).data) as Summary;
   if (s.id === STATION) show(s);
@@ -259,8 +271,12 @@ function drawChart() {
 
 // --- loop -------------------------------------------------------------------
 const clock = new THREE.Clock();
-let feedAt = 0;
-renderer.setAnimationLoop(() => {
+const FRAME_MS = 1000 / 30;
+let feedAt = 0,
+  frameAt = 0;
+renderer.setAnimationLoop((now) => {
+  if (now - frameAt < FRAME_MS - 2) return; // 30 fps, also on 120 Hz screens
+  frameAt = now;
   const dt = clock.getDelta();
   if (surge) {
     const k = Math.min(1, (performance.now() - surge.t0) / 1000 / surge.secs);

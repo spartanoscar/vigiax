@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spartanoscar/vigiax/server/internal/alert"
 	"github.com/spartanoscar/vigiax/server/internal/gauge"
 	"github.com/spartanoscar/vigiax/server/internal/meta"
 	"github.com/spartanoscar/vigiax/server/internal/sam"
@@ -52,6 +53,7 @@ type Config struct {
 	Calib  *gauge.Calibration `json:"calibration,omitempty"`
 	Rating *Rating            `json:"rating,omitempty"`
 	Source *Source            `json:"source,omitempty"`
+	Alerts *alert.Config      `json:"alerts,omitempty"` // nil: the defaults of the service
 }
 
 // Rating gives the level from the water area for a camera that sees no gauge:
@@ -269,3 +271,6 @@ func (s *Station) Rise(now time.Time, window time.Duration) (cmPerMin float64, n
 	}
 	return (fn*stl - st*sl) / den, n, true
 }
+
+// Add stores a reading measured elsewhere (a replay or a test).
+func (s *Station) Add(r Reading) error { return s.append(r) }

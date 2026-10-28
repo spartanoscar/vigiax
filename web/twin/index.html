@@ -40,7 +40,14 @@
         <span>Flash flood coming down</span>
         <strong id="surge-count">5:00</strong>
       </div>
-      <a class="hud-link glass" href="/#how">How it works</a>
+      <div class="hud-right">
+        <button id="alerts-toggle" class="alerts-pill glass" type="button" aria-expanded="false" aria-controls="alerts" title="Alert settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+          <span>Alerts</span>
+          <span id="alert-level" class="level-badge" data-level="normal">Normal</span>
+        </button>
+        <a class="hud-link glass" href="/#how">How it works</a>
+      </div>
     </header>
 
     <!-- What the camera node sees and what SAM 3.1 measured -->
@@ -156,6 +163,90 @@
 
     <p class="orbit-hint" aria-hidden="true">Drag to look around · scroll to zoom</p>
 
+    <!-- Alert settings: levels, what fires them, who hears, the message -->
+    <aside id="alerts" class="alerts glass" hidden aria-labelledby="alerts-title">
+      <div class="alerts-head">
+        <div>
+          <p class="kicker">Early warning</p>
+          <h2 id="alerts-title">Alert settings</h2>
+        </div>
+        <button id="alerts-close" class="close" type="button" aria-label="Close the alert settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+
+      <div class="alerts-station" role="tablist" aria-label="Station">
+        <button type="button" role="tab" data-station="twin" aria-selected="true">Your twin</button>
+        <button type="button" role="tab" data-station="el-reno" aria-selected="false">Real river · El Reno</button>
+      </div>
+
+      <div class="alerts-status">
+        <span class="k">Now</span>
+        <span id="alerts-now" class="level-badge" data-level="normal">Normal</span>
+        <span id="alerts-since" class="muted"></span>
+      </div>
+
+      <p id="alerts-lock" class="alerts-lock" hidden>
+        Real stations are read-only. Judges: enter your code to change them.
+      </p>
+      <form id="access-form" class="access" hidden>
+        <input id="access-code" type="password" autocomplete="off" placeholder="Access code" aria-label="Access code" />
+        <button class="soft-btn" type="submit">Unlock</button>
+        <span id="access-state" class="muted" aria-live="polite"></span>
+      </form>
+
+      <form id="alerts-form" class="levels">
+        <div id="levels"></div>
+
+        <details class="general">
+          <summary>How the rules behave</summary>
+          <label>Place in the messages <input name="place" maxlength="80" /></label>
+          <label>Readings in a row before raising <input name="confirm_readings" type="number" min="1" max="20" /></label>
+          <label>Rise measured over (minutes) <input name="rise_window_minutes" type="number" min="1" max="360" step="1" /></label>
+          <label>Minutes below a line before lowering <input name="lower_after_minutes" type="number" min="0" max="720" step="1" /></label>
+          <p class="hint">One odd frame never fires an alert, and a camera that cannot see (night, fog, a covered lens) never lowers one.</p>
+          <p id="alerts-note" class="hint"></p>
+        </details>
+
+        <div class="alerts-actions">
+          <button id="alerts-save" class="soft-btn primary" type="submit">Save</button>
+          <button id="alerts-reset" class="soft-btn" type="button">Restore defaults</button>
+          <span id="alerts-state" class="muted" aria-live="polite"></span>
+        </div>
+      </form>
+
+      <section class="preview" aria-labelledby="preview-title">
+        <div class="preview-head">
+          <h3 id="preview-title">The message people receive</h3>
+          <div class="seg" role="tablist" aria-label="Language">
+            <button type="button" data-lang="es" aria-selected="true">ES</button>
+            <button type="button" data-lang="en" aria-selected="false">EN</button>
+          </div>
+        </div>
+        <pre id="preview" class="wa-bubble"></pre>
+        <p class="hint">A fixed template filled with measured values: no model writes the text people receive.</p>
+      </section>
+
+      <section id="wa" class="wa" aria-labelledby="wa-title">
+        <h3 id="wa-title">Get this station's alerts on WhatsApp</h3>
+        <div class="wa-row">
+          <a id="wa-qr" class="wa-qr" target="_blank" rel="noopener" aria-label="Open WhatsApp with the message ready"></a>
+          <div>
+            <p>Send <code id="wa-code"></code> to <strong id="wa-number"></strong>.</p>
+            <p class="hint">You sign yourself up: nobody can add someone else's phone. It ends after 24 hours, and your number is deleted with it. <span id="wa-subs"></span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="history" aria-labelledby="history-title">
+        <h3 id="history-title">Recent changes</h3>
+        <ol id="alerts-events"></ol>
+      </section>
+    </aside>
+
+    <!-- An alert as the dashboard shows it -->
+    <div id="toasts" class="toasts" aria-live="assertive"></div>
+
     <!-- First visit: one sentence, one button -->
     <div id="intro" class="intro" hidden>
       <div class="intro-card glass" role="dialog" aria-modal="true" aria-labelledby="intro-title">
@@ -175,5 +266,6 @@
     <script type="module" src="/src/twin-ui.ts"></script>
     <script type="module" src="/src/main.ts"></script>
     <script type="module" src="/src/live-station.ts"></script>
+    <script type="module" src="/src/alerts.ts"></script>
   </body>
 </html>

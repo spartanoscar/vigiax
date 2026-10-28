@@ -11,7 +11,10 @@
 //
 // Environment: MODEL_API_KEY (required), ADDR (:8790), DATA_DIR (var),
 // MIN_FRAME_SECONDS (5), DAILY_BUDGET_USD (3), IP_DAILY_BUDGET_USD (0.5),
-// LIVE_DAILY_BUDGET_USD (0.5, live stations, apart from the visitors' budget).
+// LIVE_DAILY_BUDGET_USD (0.5, live stations, apart from the visitors' budget),
+// JUDGE_DAILY_BUDGET_USD (2, per judge), ADMIN_CODE and JUDGE_CODE (access codes),
+// WA_TOKEN, WA_PHONE_ID, WA_NUMBER, WA_APP_SECRET, WA_VERIFY_TOKEN and
+// WA_GRAPH_VERSION (WhatsApp alerts; off without a token).
 package main
 
 import (
@@ -30,6 +33,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spartanoscar/vigiax/server/internal/alert"
 	"github.com/spartanoscar/vigiax/server/internal/gauge"
 	"github.com/spartanoscar/vigiax/server/internal/meta"
 	"github.com/spartanoscar/vigiax/server/internal/scene"
@@ -46,9 +50,17 @@ type server struct {
 	live     *budget // live stations, so visitors cannot use up their day
 	hub      *hub
 
-	mu       sync.Mutex
-	stations map[string]*station.Station
-	lastAt   map[string]time.Time
+	access  *access
+	judgeIP float64 // per-visitor budget with a judge's or the admin's code
+
+	notify   func(id string, c *alert.Config, e alert.Event) // WhatsApp; nil when not configured
+	subs     *subscribers
+	waNumber string
+
+	mu         sync.Mutex
+	stations   map[string]*station.Station
+	lastAt     map[string]time.Time
+	alertState map[string]*stationAlerts
 }
 
 func main() {
@@ -61,14 +73,17 @@ func main() {
 		log.Fatal(err)
 	}
 	s := &server{
-		meta:     meta.NewClient(key),
-		dir:      filepath.Join(dir, "stations"),
-		minFrame: time.Duration(envFloat("MIN_FRAME_SECONDS", 5) * float64(time.Second)),
-		budget:   loadBudget(filepath.Join(dir, "budget.json"), envFloat("DAILY_BUDGET_USD", 3), envFloat("IP_DAILY_BUDGET_USD", 0.5)),
-		live:     loadBudget(filepath.Join(dir, "budget-live.json"), envFloat("LIVE_DAILY_BUDGET_USD", 0.5), envFloat("LIVE_DAILY_BUDGET_USD", 0.5)),
-		hub:      newHub(),
-		stations: map[string]*station.Station{},
-		lastAt:   map[string]time.Time{},
+		meta:       meta.NewClient(key),
+		dir:        filepath.Join(dir, "stations"),
+		minFrame:   time.Duration(envFloat("MIN_FRAME_SECONDS", 5) * float64(time.Second)),
+		budget:     loadBudget(filepath.Join(dir, "budget.json"), envFloat("DAILY_BUDGET_USD", 3), envFloat("IP_DAILY_BUDGET_USD", 0.5)),
+		live:       loadBudget(filepath.Join(dir, "budget-live.json"), envFloat("LIVE_DAILY_BUDGET_USD", 0.5), envFloat("LIVE_DAILY_BUDGET_USD", 0.5)),
+		hub:        newHub(),
+		access:     newAccess(os.Getenv("ADMIN_CODE"), os.Getenv("JUDGE_CODE")),
+		judgeIP:    envFloat("JUDGE_DAILY_BUDGET_USD", 2),
+		stations:   map[string]*station.Station{},
+		lastAt:     map[string]time.Time{},
+		alertState: map[string]*stationAlerts{},
 	}
 	if err := s.loadStations(); err != nil {
 		log.Fatal(err)
@@ -84,6 +99,10 @@ func main() {
 	mux.HandleFunc("GET /api/stations/{id}", s.getStation)
 	mux.HandleFunc("GET /api/stations/{id}/readings", s.getReadings)
 	mux.HandleFunc("GET /api/events", s.hub.serve)
+	mux.HandleFunc("/api/access", s.handleAccess)
+	mux.HandleFunc("/api/stations/{id}/alerts", s.handleAlerts)
+	mux.HandleFunc("POST /api/stations/{id}/alerts/false-alarm", s.postFalseAlarm)
+	s.setupWhatsApp(mux, dir)
 
 	addr := env("ADDR", ":8790")
 	log.Printf("vigiax listening on %s, data in %s, budget %.2f USD/day (%.2f per visitor)", addr, dir, s.budget.limit, s.budget.perIP)
@@ -171,7 +190,7 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := clientIP(r)
-	if err := s.budget.allow(now, ip); err != nil {
+	if err := s.budget.allow(now, ip, s.perIP(r)); err != nil {
 		httpError(w, http.StatusServiceUnavailable, err)
 		return
 	}
@@ -185,6 +204,7 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 	}
 	sum := summarize(st, now)
 	s.hub.publish("reading", sum)
+	s.checkAlerts(st, rd)
 	writeJSON(w, sum)
 }
 
@@ -219,7 +239,7 @@ func (s *server) postCalibration(w http.ResponseWriter, r *http.Request) {
 		cal, err = gauge.TwoPoint(p.Y1, p.V1, p.Y2, p.V2, p.Unit, p.X1, p.X2)
 	} else {
 		now, ip := time.Now(), clientIP(r)
-		if err := s.budget.allow(now, ip); err != nil {
+		if err := s.budget.allow(now, ip, s.perIP(r)); err != nil {
 			httpError(w, http.StatusServiceUnavailable, err)
 			return
 		}
@@ -335,14 +355,25 @@ func (b *budget) roll(now time.Time) {
 	}
 }
 
-func (b *budget) allow(now time.Time, ip string) error {
+// perIP is the visitor's daily budget: larger with a judge's code, none for the admin.
+func (s *server) perIP(r *http.Request) float64 {
+	switch s.access.role(r) {
+	case roleAdmin:
+		return s.budget.limit
+	case roleJudge:
+		return s.judgeIP
+	}
+	return s.budget.perIP
+}
+
+func (b *budget) allow(now time.Time, ip string, perIP float64) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.roll(now)
 	if b.spent >= b.limit {
 		return errors.New("the demo's model budget for today is used up; it resets at midnight Colombia time")
 	}
-	if b.byIP[ip] >= b.perIP {
+	if b.byIP[ip] >= perIP {
 		return errors.New("you have used today's demo budget for your connection; it resets at midnight Colombia time")
 	}
 	return nil

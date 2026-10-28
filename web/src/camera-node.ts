@@ -20,6 +20,8 @@ export class CameraNode {
     this.renderer.setSize(FRAME_W, FRAME_H, false);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.autoUpdate = false; // static casters: one shadow pass
+    this.renderer.shadowMap.needsUpdate = true;
     // Mounted on a pole well above the highest flood the twin can produce (3.6 m):
     // a camera under water sees nothing, in the twin and in the field.
     this.camera.position.set(GAUGE_POS.x - 6.5, 6.5, GAUGE_POS.z + 11);

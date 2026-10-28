@@ -2,6 +2,8 @@
 // at El Reno, Oklahoma. The server measures each new photo with SAM 3.1 and
 // stores the official gage reading beside it; this card only shows them.
 
+import { events } from "./events";
+
 const ID = "el-reno";
 const DAY_MIN = 1440;
 
@@ -114,7 +116,7 @@ fetch(`/api/stations/${ID}/readings?minutes=${DAY_MIN}`)
   .then((s) => (s ? show(s) : card.classList.add("offline")))
   .catch(() => card.classList.add("offline"));
 
-new EventSource("/api/events").addEventListener("reading", (e) => {
+events.addEventListener("reading", (e) => {
   const s = JSON.parse((e as MessageEvent).data) as Summary;
   if (s.id === ID) show(s);
 });

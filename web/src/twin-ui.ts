@@ -61,10 +61,16 @@ addEventListener("pointerdown", (e) => {
 
 // Filled track on the sliders; main.ts moves their values during a surge.
 const sliders = [$<HTMLInputElement>("level"), $<HTMLInputElement>("mud")];
+const painted = new Map<HTMLInputElement, string>();
 function paintSliders() {
-  for (const s of sliders) s.style.setProperty("--fill", `${((+s.value - +s.min) / (+s.max - +s.min)) * 100}%`);
-  requestAnimationFrame(paintSliders);
+  for (const s of sliders) {
+    if (painted.get(s) === s.value) continue; // touch the style only when the value moved
+    painted.set(s, s.value);
+    s.style.setProperty("--fill", `${((+s.value - +s.min) / (+s.max - +s.min)) * 100}%`);
+  }
 }
+setInterval(paintSliders, 100);
+for (const s of sliders) s.addEventListener("input", paintSliders);
 paintSliders();
 
 // --- surge countdown ---------------------------------------------------------
