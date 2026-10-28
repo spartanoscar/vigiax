@@ -1,5 +1,6 @@
 // vigiax is the station service: camera nodes post frames, SAM 3.1 turns each
-// into a water level, and the dashboard follows the readings over SSE.
+// into a water level, and the dashboard follows the readings over SSE. Live
+// stations (usgs.go) are real webcams the service follows on its own.
 //
 //	POST /api/stations/{id}/frames       JPEG body → reading
 //	POST /api/stations/{id}/calibration  JPEG body (read the gauge) or JSON two-point calibration
@@ -69,6 +70,9 @@ func main() {
 	if err := s.loadStations(); err != nil {
 		log.Fatal(err)
 	}
+	if err := s.startLiveStations(); err != nil {
+		log.Fatal(err)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/stations/{id}/frames", s.postFrame)
@@ -113,6 +117,7 @@ type summary struct {
 	Last           *station.Reading `json:"last,omitempty"`
 	Rise5CmPerMin  *float64         `json:"rise_5min_cm_per_min,omitempty"`
 	Rise30CmPerMin *float64         `json:"rise_30min_cm_per_min,omitempty"`
+	Rise3hCmPerMin *float64         `json:"rise_3h_cm_per_min,omitempty"` // for hourly cameras
 }
 
 func summarize(st *station.Station, now time.Time) summary {
@@ -126,6 +131,9 @@ func summarize(st *station.Station, now time.Time) summary {
 	if v, _, ok := st.Rise(now, 30*time.Minute); ok {
 		out.Rise30CmPerMin = &v
 	}
+	if v, _, ok := st.Rise(now, 3*time.Hour); ok {
+		out.Rise3hCmPerMin = &v
+	}
 	return out
 }
 
@@ -133,6 +141,10 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 	st, err := s.station(r.PathValue("id"))
 	if err != nil {
 		httpError(w, http.StatusBadRequest, err)
+		return
+	}
+	if st.Config().Source != nil {
+		httpError(w, http.StatusForbidden, errors.New("this is a live station: the service measures its own camera"))
 		return
 	}
 	img, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxFrameBytes))
@@ -183,6 +195,10 @@ func (s *server) postCalibration(w http.ResponseWriter, r *http.Request) {
 	st, err := s.station(r.PathValue("id"))
 	if err != nil {
 		httpError(w, http.StatusBadRequest, err)
+		return
+	}
+	if st.Config().Source != nil {
+		httpError(w, http.StatusForbidden, errors.New("this is a live station: the service measures its own camera"))
 		return
 	}
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxFrameBytes))

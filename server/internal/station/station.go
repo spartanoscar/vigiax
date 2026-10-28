@@ -27,6 +27,11 @@ const DefaultPrompt = "flood water"
 // keep is how many readings stay in memory: 4 hours at one frame every 5 s.
 const keep = 2880
 
+// MinConfidence is the SAM confidence below which a frame counts as a blind
+// camera (night, fog, a covered lens): the reading keeps no level, and a blind
+// camera never lowers the level the station last saw.
+const MinConfidence = 0.5
+
 type Reading struct {
 	T          time.Time `json:"t"`
 	LevelCm    *float64  `json:"level_cm,omitempty"`    // nil without calibration or water at the gauge
@@ -35,6 +40,9 @@ type Reading struct {
 	Confidence float64   `json:"confidence"`
 	SamMs      int64     `json:"sam_ms"`
 	CostUSD    float64   `json:"cost_usd"`
+	Blind      bool      `json:"blind,omitempty"`     // no water found with confidence: see MinConfidence
+	RefCm      *float64  `json:"ref_cm,omitempty"`    // official gage at the same time, when there is one
+	FrameURL   string    `json:"frame_url,omitempty"` // public image of the frame, for remote cameras
 }
 
 type Config struct {
@@ -42,6 +50,24 @@ type Config struct {
 	Name   string             `json:"name"`
 	Prompt string             `json:"prompt"`
 	Calib  *gauge.Calibration `json:"calibration,omitempty"`
+	Rating *Rating            `json:"rating,omitempty"`
+	Source *Source            `json:"source,omitempty"`
+}
+
+// Rating gives the level from the water area for a camera that sees no gauge:
+// level = Intercept + Slope × coverage, fitted against an official gage (eval/).
+type Rating struct {
+	Intercept float64 `json:"intercept"`
+	Slope     float64 `json:"slope"`
+	Unit      string  `json:"unit"` // FT, M or CM
+	Fit       string  `json:"fit"`  // where the numbers come from
+}
+
+// Source is a camera the service follows by itself instead of receiving frames.
+type Source struct {
+	Kind   string `json:"kind"`   // "usgs"
+	Camera string `json:"camera"` // NIMS camera id
+	Site   string `json:"site"`   // gage site number
 }
 
 type Station struct {
@@ -96,21 +122,34 @@ func (s *Station) Config() Config {
 
 // SetCalibration stores a new calibration. Readings already taken keep their level.
 func (s *Station) SetCalibration(c *gauge.Calibration) error {
+	return s.Update(func(cfg *Config) { cfg.Calib = c })
+}
+
+// Update changes the configuration and stores it. The id cannot change.
+func (s *Station) Update(f func(*Config)) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.cfg.Calib = c
+	id := s.cfg.ID
+	f(&s.cfg)
+	s.cfg.ID = id
 	b, _ := json.MarshalIndent(s.cfg, "", "  ")
 	return os.WriteFile(s.path(".json"), b, 0o644)
 }
 
-// Measure segments one JPEG frame and appends the reading.
+// Measure segments one JPEG frame taken now and appends the reading.
 func (s *Station) Measure(ctx context.Context, c *meta.Client, jpeg []byte, now time.Time) (Reading, error) {
+	return s.MeasureFrame(ctx, c, jpeg, Reading{T: now})
+}
+
+// MeasureFrame segments one JPEG frame and appends the reading. rd carries the
+// capture time and anything known about the frame beforehand (RefCm, FrameURL).
+func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte, rd Reading) (Reading, error) {
 	cfg := s.Config()
 	r, err := sam.Segment(ctx, c, jpeg, cfg.Prompt)
 	if err != nil {
 		return Reading{}, err
 	}
-	rd := Reading{T: now.UTC(), SamMs: r.Latency.Milliseconds(), CostUSD: r.CostUSD}
+	rd.T, rd.SamMs, rd.CostUSD = rd.T.UTC(), r.Latency.Milliseconds(), r.CostUSD
 	if r.FrameW > 0 {
 		area := 0.0
 		for i := range r.Objects {
@@ -129,6 +168,13 @@ func (s *Station) Measure(ctx context.Context, c *meta.Client, jpeg []byte, now 
 				rd.LevelCm = &lv
 			}
 		}
+		if cfg.Rating != nil {
+			lv := gauge.ToCm(cfg.Rating.Intercept+cfg.Rating.Slope*rd.Coverage, cfg.Rating.Unit)
+			rd.LevelCm = &lv
+		}
+	}
+	if rd.Confidence < MinConfidence {
+		rd.Blind, rd.LevelCm, rd.WaterlineY = true, nil, nil
 	}
 	return rd, s.append(rd)
 }

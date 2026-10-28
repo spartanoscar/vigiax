@@ -42,8 +42,11 @@ type Calibration struct {
 func (c *Calibration) Value(y float64) float64 { return (c.ZeroY - y) / c.PxPerUnit }
 
 // Cm converts a gauge value to centimetres.
-func (c *Calibration) Cm(v float64) float64 {
-	switch strings.ToUpper(c.Unit) {
+func (c *Calibration) Cm(v float64) float64 { return ToCm(v, c.Unit) }
+
+// ToCm converts a value in unit (FT, M or CM) to centimetres.
+func ToCm(v float64, unit string) float64 {
+	switch strings.ToUpper(unit) {
 	case "FT":
 		return v * 30.48
 	case "M":
