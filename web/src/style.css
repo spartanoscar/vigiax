@@ -91,7 +91,7 @@ body.node-on .rec { background: var(--flood); animation: blink 1.2s steps(2) inf
 /* ─── Real river (USGS El Reno) ─── */
 .hud-left { display: flex; align-items: center; gap: 8px; pointer-events: none; }
 .hud-left > * { pointer-events: auto; }
-.live-pill { height: 40px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: border-color 0.15s; }
+.live-pill { white-space: nowrap; height: 40px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: border-color 0.15s; }
 .live-pill:hover, .live-pill[aria-expanded="true"] { border-color: rgba(74, 222, 128, 0.5); }
 .live-pill-v { font: 700 14px/1 var(--display); font-variant-numeric: tabular-nums; color: var(--muted); }
 .live-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6); animation: pulse-ok 2s ease-out infinite; }
@@ -218,7 +218,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
   .go::before { width: 20px; height: 20px; }
   .tuning { bottom: 80px; }
   .live-pill { height: 40px; padding: 0 12px; }
-  body.surging .live-pill-k { display: none; }
+  .live-pill-k { display: none; }
   .live .chart-wrap { display: block; }
   .live { top: 60px; left: 10px; right: 10px; width: auto; max-height: calc(100vh - 80px); z-index: 8; }
   body.live-open .sensor, body.live-open .dock { visibility: hidden; }

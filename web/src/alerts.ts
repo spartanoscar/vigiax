@@ -51,7 +51,7 @@ const twin = () => $("station-id").textContent || "twin";
 let current = "twin"; // tab: "twin" or a real station id
 const stationId = () => (current === "twin" ? twin() : current);
 let view: View | null = null;
-let lang: "es" | "en" = "es";
+let lang: "es" | "en" = "en";
 
 const panel = $("alerts");
 const toggle = $<HTMLButtonElement>("alerts-toggle");
@@ -94,11 +94,19 @@ function render(v: View) {
   view = v;
   const c = v.config;
   badge($("alerts-now"), v.state.level);
-  $("alerts-since").textContent =
-    v.state.level !== "normal" && v.state.since ? `since ${new Date(v.state.since).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : v.state.blind ? "camera cannot see" : "";
+  panel.dataset.level = v.state.level;
+  const raised = v.state.level !== "normal" && v.state.since;
+  $("alerts-since").textContent = raised ? `since ${clock(v.state.since)}` : v.state.blind ? "camera cannot see" : "";
+  const last = (v.events ?? []).filter((e) => e.kind !== "blind").at(-1);
+  $("alerts-why").textContent =
+    raised && last ? sentence(last.reason)
+    : v.state.blind ? "The camera cannot see right now, so the level stays where it was."
+    : "The water is below every line. Nobody is being warned.";
   if (current === "twin") badge($("alert-level"), v.state.level);
 
   const locked = !v.editable;
+  panel.classList.toggle("locked", locked);
+  $("levels-hint").textContent = locked ? "Tap one to see it" : "Tap one to change it";
   $("alerts-lock").hidden = !locked;
   $("access-form").hidden = !(locked || v.role !== "public") || current === "twin";
   $("access-state").textContent = v.role === "public" ? "" : `Signed in as ${v.role}`;
@@ -115,12 +123,13 @@ function render(v: View) {
   $("alerts-note").textContent = c.note ?? "";
   $<HTMLButtonElement>("alerts-save").disabled = locked;
   $<HTMLButtonElement>("alerts-reset").disabled = locked || !v.custom;
+  f.classList.toggle("dirty", v.custom); // Save appears once something changes
   $("preview").textContent = v.preview[lang];
 
   const wa = $("wa");
   wa.hidden = !v.whatsapp;
   if (v.whatsapp) {
-    const code = `${lang === "en" ? "ALERTS" : "ALERTAS"} ${v.station}`;
+    const code = `ALERTS ${v.station}`;
     const link = `https://wa.me/${v.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(code)}`;
     $("wa-code").textContent = code;
     $("wa-number").textContent = v.whatsapp;
@@ -139,46 +148,56 @@ function render(v: View) {
       .reverse()
       .map((e) => {
         const li = document.createElement("li");
-        const time = new Date(e.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        const time = clock(e.t, true);
         li.innerHTML = `<time></time> <span class="level-badge" data-level=""></span> <span class="why"></span>`;
         li.querySelector("time")!.textContent = time;
         badge(li.querySelector(".level-badge")!, e.kind === "blind" ? e.from : e.to);
         li.querySelector(".why")!.textContent =
-          e.kind === "false_alarm" ? `False alarm (${e.by ?? "someone"})` : e.kind === "blind" ? "Camera cannot see: level kept" : e.reason;
+          e.kind === "false_alarm" ? `Marked as a false alarm (${e.by ?? "someone"})` : e.kind === "blind" ? "Camera cannot see: level kept" : sentence(e.reason);
         return li;
       }),
   );
   if (!v.events?.length) $("alerts-events").innerHTML = `<li class="muted">No changes yet. Trigger a flash flood.</li>`;
 }
 
+const clock = (t: string, seconds = false) =>
+  new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: seconds ? "2-digit" : undefined });
+const sentence = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) + (s.endsWith(".") ? "" : ".") : "");
+
 function ruleCard(l: Exclude<Level, "normal">, r: Rule, c: Config, locked: boolean): HTMLElement {
-  const el = document.createElement("fieldset");
+  const el = document.createElement("details");
   el.className = "rule";
   el.dataset.level = l;
-  el.disabled = locked;
-  const span = c.rise_window_minutes;
   el.innerHTML = `
-    <legend>
+    <summary>
       <span class="level-badge" data-level="${l}">${NAMES[l]}</span>
-      <label class="switch"><input type="checkbox" name="enabled" /><span>Active</span></label>
-    </legend>
-    <div class="fires">
-      <span class="k">Fires when</span>
-      <label>level ≥ <input name="level_cm" type="number" min="1" max="5000" step="1" /> cm</label>
-      <span class="or">or</span>
-      <label>rises ≥ <input name="rise_cm_per_min" type="number" min="0.1" max="500" step="0.1" /> cm/min <small>over ${span} min</small></label>
-    </div>
-    <div class="who">
-      <span class="k">Tells</span>
-      <select name="audience">${Object.entries(AUDIENCE).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
-      <span class="k">by</span>
-      ${Object.entries(CHANNELS).map(([k, v]) => `<label class="chip"><input type="checkbox" name="ch-${k}" /> ${v}</label>`).join("")}
-    </div>
-    <label class="why"><span class="k">Why</span><input name="why" maxlength="200" /></label>
-    <label class="why"><span class="k">What to do · ES</span><input name="action" maxlength="160" /></label>
-    <label class="why"><span class="k">What to do · EN</span><input name="action_en" maxlength="160" /></label>`;
+      <span class="rule-sum"><b></b><span></span></span>
+      <label class="switch" title="Active"><input type="checkbox" name="enabled" /><span class="sr-only">${NAMES[l]} active</span></label>
+    </summary>
+    <fieldset class="rule-body">
+      <div class="row">
+        <span class="k">Fires when</span>
+        <div class="inline">
+          <label class="num">level ≥ <input name="level_cm" type="number" min="1" max="5000" step="1" /> cm</label>
+          <span class="or">or</span>
+          <label class="num">rises ≥ <input name="rise_cm_per_min" type="number" min="0.1" max="500" step="0.1" /> cm/min</label>
+        </div>
+        <small>The rise is measured over the last ${c.rise_window_minutes} min.</small>
+      </div>
+      <label class="row"><span class="k">Tells</span>
+        <select name="audience">${Object.entries(AUDIENCE).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
+      </label>
+      <div class="row"><span class="k">By</span>
+        <div class="chips">${Object.entries(CHANNELS).map(([k, v]) => `<label class="chip"><input type="checkbox" name="ch-${k}" />${v}</label>`).join("")}</div>
+      </div>
+      <label class="row"><span class="k">Why</span><input name="why" maxlength="200" /></label>
+      <label class="row"><span class="k">What to do · English</span><input name="action_en" maxlength="160" /></label>
+      <label class="row"><span class="k">What to do · Spanish</span><input name="action" maxlength="160" /></label>
+    </fieldset>`;
   const q = <T extends HTMLInputElement | HTMLSelectElement>(n: string) => el.querySelector(`[name="${n}"]`) as T;
   q<HTMLInputElement>("enabled").checked = r.enabled;
+  q<HTMLInputElement>("enabled").disabled = locked;
+  el.querySelector("fieldset")!.disabled = locked;
   q<HTMLInputElement>("level_cm").value = r.level_cm != null ? String(r.level_cm) : "";
   q<HTMLInputElement>("rise_cm_per_min").value = r.rise_cm_per_min != null ? String(r.rise_cm_per_min) : "";
   q<HTMLSelectElement>("audience").value = r.audience;
@@ -186,8 +205,20 @@ function ruleCard(l: Exclude<Level, "normal">, r: Rule, c: Config, locked: boole
   q<HTMLInputElement>("why").value = r.why;
   q<HTMLInputElement>("action").value = r.action;
   q<HTMLInputElement>("action_en").value = r.action_en;
-  el.classList.toggle("off", !r.enabled);
-  q<HTMLInputElement>("enabled").addEventListener("change", (e) => el.classList.toggle("off", !(e.target as HTMLInputElement).checked));
+
+  // The summary line follows the fields as they change.
+  const sum = () => {
+    const on = q<HTMLInputElement>("enabled").checked;
+    el.classList.toggle("off", !on);
+    const lv = q<HTMLInputElement>("level_cm").value, rise = q<HTMLInputElement>("rise_cm_per_min").value;
+    const when = [lv && `≥ ${lv} cm`, rise && `rising ${rise} cm/min`].filter(Boolean).join(" or ");
+    const by = Object.entries(CHANNELS).filter(([k]) => q<HTMLInputElement>(`ch-${k}`).checked).map(([, v]) => v);
+    el.querySelector(".rule-sum b")!.textContent = on ? when || "No trigger set" : "Off";
+    el.querySelector(".rule-sum span")!.textContent = on ? `${AUDIENCE[q<HTMLSelectElement>("audience").value as Rule["audience"]]} · ${by.join(", ") || "no channel"}` : "This level never fires";
+  };
+  el.addEventListener("input", sum);
+  el.addEventListener("change", sum);
+  sum();
   return el;
 }
 
@@ -216,6 +247,7 @@ function collect(): Config {
   return c;
 }
 
+for (const ev of ["input", "change"]) $("alerts-form").addEventListener(ev, () => $("alerts-form").classList.add("dirty"));
 $("alerts-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const state = $("alerts-state");
@@ -275,13 +307,17 @@ function toast(a: AlertMsg) {
   const el = document.createElement("div");
   el.className = "toast glass";
   el.dataset.level = a.event.kind === "blind" ? a.event.from : a.event.to;
-  el.innerHTML = `<pre></pre><div class="toast-actions"></div>`;
-  el.querySelector("pre")!.textContent = a.message.en;
+  el.setAttribute("role", "alert");
+  el.innerHTML = `<div class="toast-head"><span class="level-badge"></span><span class="toast-where"></span><time></time></div><p class="toast-msg"></p><div class="toast-actions"></div>`;
+  badge(el.querySelector(".level-badge")!, el.dataset.level as Level);
+  el.querySelector(".toast-where")!.textContent = a.station === twin() ? "Your twin" : a.station === "el-reno" ? "Real river · El Reno" : a.station;
+  el.querySelector("time")!.textContent = clock(a.event.t);
+  el.querySelector(".toast-msg")!.textContent = a.message.en;
   const actions = el.querySelector(".toast-actions")!;
   const button = (label: string, fn: () => void) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "soft-btn";
+    b.className = actions.children.length ? "soft-btn" : "soft-btn primary";
     b.textContent = label;
     b.addEventListener("click", fn);
     actions.append(b);

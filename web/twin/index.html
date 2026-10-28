@@ -41,8 +41,8 @@
         <strong id="surge-count">5:00</strong>
       </div>
       <div class="hud-right">
-        <button id="alerts-toggle" class="alerts-pill glass" type="button" aria-expanded="false" aria-controls="alerts" title="Alert settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        <button id="alerts-toggle" class="alerts-pill glass" type="button" aria-expanded="false" aria-controls="alerts" title="Alerts">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg>
           <span>Alerts</span>
           <span id="alert-level" class="level-badge" data-level="normal">Normal</span>
         </button>
@@ -163,14 +163,14 @@
 
     <p class="orbit-hint" aria-hidden="true">Drag to look around · scroll to zoom</p>
 
-    <!-- Alert settings: levels, what fires them, who hears, the message -->
-    <aside id="alerts" class="alerts glass" hidden aria-labelledby="alerts-title">
+    <!-- Alert settings: where the stream stands, what people receive, the rules -->
+    <aside id="alerts" class="alerts glass" hidden aria-labelledby="alerts-title" data-level="normal">
       <div class="alerts-head">
         <div>
           <p class="kicker">Early warning</p>
-          <h2 id="alerts-title">Alert settings</h2>
+          <h2 id="alerts-title">Alerts</h2>
         </div>
-        <button id="alerts-close" class="close" type="button" aria-label="Close the alert settings">
+        <button id="alerts-close" class="close" type="button" aria-label="Close the alerts">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       </div>
@@ -180,11 +180,19 @@
         <button type="button" role="tab" data-station="el-reno" aria-selected="false">Real river · El Reno</button>
       </div>
 
-      <div class="alerts-status">
-        <span class="k">Now</span>
-        <span id="alerts-now" class="level-badge" data-level="normal">Normal</span>
-        <span id="alerts-since" class="muted"></span>
-      </div>
+      <section class="status" aria-label="Current level">
+        <div class="status-line">
+          <span id="alerts-now" class="level-badge" data-level="normal">Normal</span>
+          <span id="alerts-since" class="muted"></span>
+        </div>
+        <ol class="ladder" aria-hidden="true">
+          <li data-step="normal">Normal</li>
+          <li data-step="attention">Attention</li>
+          <li data-step="alert">Alert</li>
+          <li data-step="evacuate">Evacuate</li>
+        </ol>
+        <p id="alerts-why" class="status-why"></p>
+      </section>
 
       <p id="alerts-lock" class="alerts-lock" hidden>
         Real stations are read-only. Judges: enter your code to change them.
@@ -195,7 +203,35 @@
         <span id="access-state" class="muted" aria-live="polite"></span>
       </form>
 
+      <section class="preview" aria-labelledby="preview-title">
+        <div class="section-head">
+          <h3 id="preview-title">What people receive</h3>
+          <div class="seg" role="tablist" aria-label="Language">
+            <button type="button" data-lang="en" aria-selected="true">EN</button>
+            <button type="button" data-lang="es" aria-selected="false">ES</button>
+          </div>
+        </div>
+        <div class="phone-chat">
+          <div class="chat-top"><img src="/favicon.svg" alt="" width="22" height="22" /><span>Vigiax alerts</span><small>WhatsApp</small></div>
+          <pre id="preview" class="wa-bubble"></pre>
+        </div>
+        <p class="hint">A fixed template filled with measured values: no model writes the text people receive.</p>
+      </section>
+
+      <section id="wa" class="wa" aria-labelledby="wa-title" hidden>
+        <h3 id="wa-title">Get these alerts on your phone</h3>
+        <div class="wa-row">
+          <a id="wa-qr" class="wa-qr" target="_blank" rel="noopener" aria-label="Open WhatsApp with the message ready"></a>
+          <div>
+            <p>Scan the code, or send this message to <strong id="wa-number"></strong> on WhatsApp:</p>
+            <p><code id="wa-code"></code></p>
+            <p class="hint">You sign yourself up: nobody can add someone else's phone. It ends after 24 hours, and your number is deleted with it. <span id="wa-subs"></span></p>
+          </div>
+        </div>
+      </section>
+
       <form id="alerts-form" class="levels">
+        <div class="section-head"><h3>Levels</h3><span id="levels-hint" class="muted">Tap one to change it</span></div>
         <div id="levels"></div>
 
         <details class="general">
@@ -209,34 +245,11 @@
         </details>
 
         <div class="alerts-actions">
-          <button id="alerts-save" class="soft-btn primary" type="submit">Save</button>
+          <button id="alerts-save" class="soft-btn primary" type="submit">Save changes</button>
           <button id="alerts-reset" class="soft-btn" type="button">Restore defaults</button>
           <span id="alerts-state" class="muted" aria-live="polite"></span>
         </div>
       </form>
-
-      <section class="preview" aria-labelledby="preview-title">
-        <div class="preview-head">
-          <h3 id="preview-title">The message people receive</h3>
-          <div class="seg" role="tablist" aria-label="Language">
-            <button type="button" data-lang="es" aria-selected="true">ES</button>
-            <button type="button" data-lang="en" aria-selected="false">EN</button>
-          </div>
-        </div>
-        <pre id="preview" class="wa-bubble"></pre>
-        <p class="hint">A fixed template filled with measured values: no model writes the text people receive.</p>
-      </section>
-
-      <section id="wa" class="wa" aria-labelledby="wa-title">
-        <h3 id="wa-title">Get this station's alerts on WhatsApp</h3>
-        <div class="wa-row">
-          <a id="wa-qr" class="wa-qr" target="_blank" rel="noopener" aria-label="Open WhatsApp with the message ready"></a>
-          <div>
-            <p>Send <code id="wa-code"></code> to <strong id="wa-number"></strong>.</p>
-            <p class="hint">You sign yourself up: nobody can add someone else's phone. It ends after 24 hours, and your number is deleted with it. <span id="wa-subs"></span></p>
-          </div>
-        </div>
-      </section>
 
       <section class="history" aria-labelledby="history-title">
         <h3 id="history-title">Recent changes</h3>
