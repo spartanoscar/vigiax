@@ -88,6 +88,39 @@ body.node-on .rec { background: var(--flood); animation: blink 1.2s steps(2) inf
 .lg-sam { width: 7px; height: 7px; border-radius: 50%; background: #00beff; }
 .lg-span { margin-left: auto; }
 
+/* ─── Real river (USGS El Reno) ─── */
+.hud-left { display: flex; align-items: center; gap: 8px; pointer-events: none; }
+.hud-left > * { pointer-events: auto; }
+.live-pill { height: 40px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: border-color 0.15s; }
+.live-pill:hover, .live-pill[aria-expanded="true"] { border-color: rgba(74, 222, 128, 0.5); }
+.live-pill-v { font: 700 14px/1 var(--display); font-variant-numeric: tabular-nums; color: var(--muted); }
+.live-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6); animation: pulse-ok 2s ease-out infinite; }
+
+.live { position: fixed; z-index: 4; top: 76px; left: 16px; width: 340px; max-height: calc(100vh - 176px); overflow-y: auto; padding: 14px 12px 12px; border-radius: var(--radius); display: grid; gap: 10px; scrollbar-width: none; animation: rise-in 0.2s ease both; }
+.live-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 0 2px; }
+.live-kicker { margin: 0 0 4px; display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ok); }
+.live h2 { margin: 0; font: 700 18px/1.15 var(--display); letter-spacing: -0.01em; }
+.live-where { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+.live-photo { position: relative; margin: 0; aspect-ratio: 16 / 9; border-radius: 13px; overflow: hidden; background: #0b1322; }
+.live-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.live-time { position: absolute; left: 8px; bottom: 8px; font: 600 11px/1 var(--sans); padding: 5px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(6px); }
+.live-time:empty { display: none; }
+.live-blind { position: absolute; inset: 0; display: none; place-items: center; font-weight: 700; background: rgba(4, 8, 16, 0.6); }
+.live.blind .live-blind { display: grid; }
+.live-nums { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.live-nums > div { display: grid; gap: 4px; align-content: start; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); padding: 10px 12px; }
+.live-nums .v { font-size: 26px; letter-spacing: -0.02em; }
+.live-nums .sam { background: linear-gradient(90deg, #5fd0ff, var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.live-note { font-size: 11px; color: var(--muted); }
+.live-rise { margin: 0; display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
+.live-rise .v { font-size: 14px; }
+#live-chart { display: block; width: 100%; height: 110px; }
+.live-credit, .live-offline { margin: 0 4px; font-size: 11px; color: var(--muted); }
+.live-credit a { color: inherit; }
+.live-credit a:hover { color: var(--fg); }
+.live-offline { display: none; }
+.live.offline .live-offline { display: block; }
+
 /* ─── Dock ─── */
 .dock { position: fixed; z-index: 6; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 999px; }
 .dock-btn { height: 48px; padding: 0 22px; border-radius: 999px; border: 1px solid transparent; cursor: pointer; font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; transition: transform 0.12s ease, filter 0.15s, background 0.2s, box-shadow 0.2s; }
@@ -161,6 +194,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 
 @keyframes rise-in { from { opacity: 0; transform: translate(var(--tx, 0), 10px); } }
 .tuning { --tx: -50%; }
+@keyframes pulse-ok { 70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
 @keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(255, 77, 79, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); } }
 @keyframes blink { 50% { opacity: 0.25; } }
 @keyframes glow { 50% { box-shadow: 0 0 0 6px rgba(255, 77, 79, 0.25), 0 8px 24px rgba(229, 56, 59, 0.5); } }
@@ -183,6 +217,11 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
   .go { min-width: 0; font-size: 0; padding: 0 14px; gap: 0; }
   .go::before { width: 20px; height: 20px; }
   .tuning { bottom: 80px; }
+  .live-pill { height: 40px; padding: 0 12px; }
+  body.surging .live-pill-k { display: none; }
+  .live .chart-wrap { display: block; }
+  .live { top: 60px; left: 10px; right: 10px; width: auto; max-height: calc(100vh - 80px); z-index: 8; }
+  body.live-open .sensor, body.live-open .dock { visibility: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

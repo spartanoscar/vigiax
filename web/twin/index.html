@@ -23,11 +23,18 @@
     <div id="view" aria-label="3D view of the stream. Drag to look around, scroll to zoom."></div>
 
     <header class="hud-top">
-      <a class="brand glass" href="/" aria-label="Vigiax home">
-        <img src="/favicon.svg" alt="" width="28" height="28" />
-        <span class="brand-name">Vigiax</span>
-        <span class="brand-tag">Live twin</span>
-      </a>
+      <div class="hud-left">
+        <a class="brand glass" href="/" aria-label="Vigiax home">
+          <img src="/favicon.svg" alt="" width="28" height="28" />
+          <span class="brand-name">Vigiax</span>
+          <span class="brand-tag">Live twin</span>
+        </a>
+        <button id="live-toggle" class="live-pill glass" type="button" aria-expanded="false" aria-controls="live">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="live-pill-k">Real river</span>
+          <span class="live-pill-v">–</span>
+        </button>
+      </div>
       <div id="surge-banner" class="surge-banner glass" hidden role="status">
         <span class="surge-pulse" aria-hidden="true"></span>
         <span>Flash flood coming down</span>
@@ -65,6 +72,40 @@
           <span class="lg-span">last 10 min</span>
         </div>
       </div>
+    </aside>
+
+    <!-- The same measurement on a real river, live -->
+    <aside id="live" class="live glass" hidden aria-labelledby="live-title">
+      <div class="live-head">
+        <div>
+          <p class="live-kicker"><span class="live-dot" aria-hidden="true"></span>Live · real river</p>
+          <h2 id="live-title">North Canadian River</h2>
+          <p class="live-where">El Reno, Oklahoma · USGS webcam, hourly</p>
+        </div>
+        <button id="live-close" class="close" type="button" aria-label="Hide the real river">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+      <figure class="live-photo">
+        <img id="live-photo" alt="Latest USGS webcam photo of the North Canadian River near El Reno, Oklahoma" width="720" height="405" />
+        <span class="live-time" id="live-time"></span>
+        <span class="live-blind">Camera blind (night)</span>
+      </figure>
+      <div class="live-nums">
+        <div><span class="k">Measured by SAM 3.1</span><span class="v sam" id="live-sam">–</span></div>
+        <div><span class="k">Official USGS gage</span><span class="v" id="live-ref">–</span><span class="live-note" id="live-ref-note"></span></div>
+      </div>
+      <p class="live-rise"><span class="k">Rise, last 3 h</span><span class="v" id="live-rise">–</span></p>
+      <div class="chart-wrap">
+        <canvas id="live-chart"></canvas>
+        <div class="legend" aria-hidden="true">
+          <span><i class="lg-truth"></i>USGS gage</span>
+          <span><i class="lg-sam"></i>SAM 3.1</span>
+          <span class="lg-span">last 24 h</span>
+        </div>
+      </div>
+      <p class="live-credit">Imagery and gage data: <a href="https://apps.usgs.gov/hivis/camera/OK_North_Canadian_River_near_El_Reno" target="_blank" rel="noopener">U.S. Geological Survey</a></p>
+      <p class="live-offline">The live station is unreachable right now.</p>
     </aside>
 
     <!-- The three things a visitor does -->
@@ -133,5 +174,6 @@
 
     <script type="module" src="/src/twin-ui.ts"></script>
     <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/live-station.ts"></script>
   </body>
 </html>

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import "./style.css";
-import { World, GAUGE_POS, type WorldState } from "./world";
+import { World, GAUGE_POS, GAUGE_HEIGHT, type WorldState } from "./world";
 import { CameraNode, FRAME_W, FRAME_H } from "./camera-node";
 
 const FRAME_SECONDS = 5;
@@ -81,7 +81,7 @@ showControls();
 type Reading = { t: string; level_cm?: number; waterline_y?: number; coverage: number; confidence: number; sam_ms: number };
 type Summary = {
   id: string;
-  calibration?: { source: string; px_per_unit: number; unit: string; col_x1: number; col_x2: number };
+  calibration?: { source: string; px_per_unit: number; zero_y: number; unit: string; col_x1: number; col_x2: number };
   last?: Reading;
   rise_5min_cm_per_min?: number;
 };
@@ -204,15 +204,19 @@ const overlay = $<HTMLCanvasElement>("feed-overlay");
 feed.width = overlay.width = FRAME_W;
 feed.height = overlay.height = FRAME_H;
 const feedCtx = feed.getContext("2d")!;
+const UNIT_CM: Record<string, number> = { CM: 1, M: 100, FT: 30.48 };
 
 function drawOverlay(y: number | undefined, c?: Summary["calibration"]) {
   const g = overlay.getContext("2d")!;
   g.clearRect(0, 0, FRAME_W, FRAME_H);
   if (c) {
+    // The columns where the waterline is read, only as tall as the printed gauge.
+    const top = Math.max(0, c.zero_y - (GAUGE_HEIGHT * 100 / (UNIT_CM[c.unit] ?? 100)) * c.px_per_unit);
+    const bottom = Math.min(FRAME_H, c.zero_y);
     g.strokeStyle = "rgba(255,255,255,.9)";
     g.lineWidth = 3;
     g.setLineDash([10, 8]);
-    g.strokeRect(c.col_x1 - 6, 0, c.col_x2 - c.col_x1 + 12, FRAME_H);
+    g.strokeRect(c.col_x1 - 6, top, c.col_x2 - c.col_x1 + 12, bottom - top);
     g.setLineDash([]);
   }
   if (y == null) return;
