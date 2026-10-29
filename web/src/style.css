@@ -226,3 +226,48 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ─── Tuning: tabs for the stream, the scene and the camera ─── */
+.tuning { max-height: calc(100vh - 120px); overflow-y: auto; scrollbar-width: none; gap: 14px; }
+.tuning.glass { background: rgba(8, 13, 25, 0.94); }
+.tune-tabs { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); }
+.tune-tabs button { flex: 1; height: 32px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.tune-tabs [aria-selected="true"] { background: rgba(56, 198, 244, 0.18); color: var(--fg); }
+.tune-pane { display: grid; gap: 16px; min-width: 0; }
+.conditions { margin: 0; padding: 0; border: 0; }
+.pane-note { float: left; width: 100%; margin: 0 0 -4px; padding: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.field-k { font-weight: 600; }
+
+/* People: one tap, not a dropdown. */
+.seg-pick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); }
+.seg-pick button { height: 32px; border: 0; border-radius: 9px; background: none; color: var(--muted); font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
+.seg-pick [aria-checked="true"] { background: rgba(255, 255, 255, 0.12); color: var(--fg); }
+
+/* On/off rows: the text on the left, a switch on the right. */
+.check { display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer; font-weight: 600; }
+.check span { display: grid; gap: 2px; }
+.check small { font-size: 12px; font-weight: 400; color: var(--muted); line-height: 1.4; }
+.check input {
+  -webkit-appearance: none; appearance: none; flex: none; margin: 0; width: 40px; height: 24px; border-radius: 999px; cursor: pointer;
+  background: radial-gradient(circle at 12px 50%, #fff 8px, transparent 8.5px), rgba(255, 255, 255, 0.16);
+  transition: background 0.18s;
+}
+.check input:checked { background: radial-gradient(circle at 28px 50%, #fff 8px, transparent 8.5px), var(--ok); }
+
+.field output[data-words] { font: 600 12px var(--sans); color: var(--fg); padding: 1px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
+#rain { background: linear-gradient(90deg, #7dd3fc var(--fill, 0%), rgba(255, 255, 255, 0.14) var(--fill, 0%)); }
+#night { background: linear-gradient(90deg, #818cf8 var(--fill, 0%), rgba(255, 255, 255, 0.14) var(--fill, 0%)); }
+#lens-haze { background: linear-gradient(90deg, #cbd5e1 var(--fill, 0%), rgba(255, 255, 255, 0.14) var(--fill, 0%)); }
+#shake { background: linear-gradient(90deg, #fbbf24 var(--fill, 0%), rgba(255, 255, 255, 0.14) var(--fill, 0%)); }
+
+.knock-row { display: grid; gap: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+.knock { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-color: rgba(255, 77, 79, 0.4); color: #ffb3b4; }
+.knock::before { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 2 4 14h7l-1 8 9-12h-7z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 2 4 14h7l-1 8 9-12h-7z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.knock:hover { border-color: rgba(255, 77, 79, 0.7); }
+.tuning .calib { border-top: 1px solid var(--line); }
+
+/* The camera was knocked: the feed says readings are paused. */
+.feed-moved { position: absolute; inset: auto 8px 8px 8px; z-index: 2; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 9px 10px 9px 12px; border-radius: 11px; background: rgba(40, 10, 14, 0.9); border: 1px solid rgba(255, 77, 79, 0.55); backdrop-filter: blur(6px); animation: rise-in 0.25s ease both; }
+.feed-moved b { font-size: 12px; color: #ff8a8b; text-transform: uppercase; letter-spacing: 0.06em; }
+.feed-moved span { grid-column: 1; font-size: 11px; line-height: 1.35; color: #f1d4d5; }
+.feed-moved button { grid-column: 2; grid-row: 1 / span 2; height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: #fff; color: #111; font-size: 12px; font-weight: 700; cursor: pointer; }

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import "./style.css";
-import { World, GAUGE_POS, GAUGE_HEIGHT, type WorldState } from "./world";
+import { World, GAUGE_POS, GAUGE_HEIGHT, groundHeight, type WorldState } from "./world";
 import { CameraNode, FRAME_W, FRAME_H } from "./camera-node";
 import { events } from "./events";
 import { STATION } from "./station";
@@ -36,11 +36,40 @@ controls.target.set(GAUGE_POS.x - 2, 1, GAUGE_POS.z - 6);
 controls.maxPolarAngle = Math.PI * 0.48;
 controls.enableDamping = true;
 
-// The node's own camera, drawn as a small marker so viewers see where frames come from.
-const marker = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.5), new THREE.MeshStandardMaterial({ color: 0xe8e2d0 }));
-marker.position.copy(node.camera.position);
-marker.quaternion.copy(node.camera.quaternion);
-world.scene.add(marker);
+// The node itself, so viewers see where frames come from: a pole from the
+// bank, the camera housing with its lens, and a small solar panel. It lives on
+// layer 1, which only the main view draws: the node must not film itself.
+const NODE_LAYER = 1;
+camera.layers.enable(NODE_LAYER);
+const nodeModel = new THREE.Group();
+{
+  const metal = new THREE.MeshStandardMaterial({ color: 0x6b7178, roughness: 0.6, metalness: 0.4 });
+  const housing = new THREE.MeshStandardMaterial({ color: 0xe8e4da, roughness: 0.5 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x15191f, roughness: 0.3 });
+  const p = node.camera.position;
+  const foot = groundHeight(p.x, p.z);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, p.y - foot, 8), metal);
+  pole.position.set(p.x, (p.y + foot) / 2 - 0.1, p.z);
+  const head = new THREE.Group();
+  head.position.copy(p);
+  head.quaternion.copy(node.camera.quaternion);
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.42), housing);
+  const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16), dark);
+  lens.rotation.x = Math.PI / 2;
+  lens.position.z = -0.23;
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.02, 0.48), housing);
+  hood.position.y = 0.11;
+  head.add(box, lens, hood);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.36), dark);
+  panel.position.set(p.x, p.y + 0.45, p.z + 0.1);
+  panel.rotation.x = -0.5;
+  nodeModel.add(pole, head, panel);
+  nodeModel.traverse((o) => {
+    o.layers.set(NODE_LAYER);
+    o.castShadow = true;
+  });
+}
+world.scene.add(nodeModel);
 
 function resize() {
   const el = $("view");
@@ -52,7 +81,7 @@ addEventListener("resize", resize);
 resize();
 
 // --- twin state ---------------------------------------------------------
-const state: WorldState = { levelM: 0.45, mud: 0.15 };
+const state: WorldState = { levelM: 0.45, mud: 0.15, rain: 0, night: 0, people: 0, logs: false, debrisFlow: false, dam: false };
 let surge: { from: number; to: number; mudFrom: number; t0: number; secs: number } | null = null;
 
 const levelInput = $<HTMLInputElement>("level");
@@ -69,8 +98,61 @@ mudInput.oninput = () => { state.mud = +mudInput.value; showControls(); };
 $("surge").onclick = () => {
   const secs = +$<HTMLSelectElement>("surge-min").value * 60;
   surge = { from: state.levelM, to: 3.2, mudFrom: state.mud, t0: performance.now(), secs };
+  state.logs = check("logs").checked = true; // a flash flood carries what it tears from the banks
 };
 showControls();
+
+// --- scene and camera conditions: what the field throws at a camera --------
+const check = (id: string) => $<HTMLInputElement>(id);
+const bind = (id: string, apply: (el: HTMLInputElement) => void) => {
+  const el = check(id);
+  el.addEventListener("input", () => apply(el));
+  apply(el);
+};
+bind("people", (el) => (state.people = +el.value));
+bind("logs", (el) => (state.logs = el.checked));
+bind("debris-flow", (el) => (state.debrisFlow = el.checked));
+
+// Damming, then release: how many debris flows begin. A jam of logs and rocks
+// closes the channel upstream and the stream drops; after a deceptive calm the
+// dam gives way and a debris flow comes down. Vigiax should warn at the drop.
+let damming: { t0: number; from: number } | null = null;
+const DROP_S = 60, CALM_S = 45, RELEASE_S = 60;
+$("damming").onclick = () => {
+  surge = null;
+  damming = { t0: performance.now(), from: Math.max(state.levelM, 0.45) };
+  state.dam = true;
+  state.debrisFlow = check("debris-flow").checked = false;
+};
+function stepDamming() {
+  if (!damming) return;
+  const s = (performance.now() - damming.t0) / 1000;
+  const low = Math.max(0.22, damming.from * 0.35);
+  if (s < DROP_S) {
+    const k = s / DROP_S;
+    state.levelM = damming.from + (low - damming.from) * k * k * (3 - 2 * k);
+  } else if (s < DROP_S + CALM_S) {
+    state.levelM = low;
+  } else {
+    state.dam = false;
+    state.debrisFlow = check("debris-flow").checked = true;
+    surge = { from: low, to: 3.2, mudFrom: state.mud, t0: performance.now(), secs: RELEASE_S };
+    damming = null;
+  }
+  showControls();
+}
+bind("rain", (el) => (state.rain = +el.value));
+bind("night", (el) => (state.night = +el.value));
+bind("lens-drops", (el) => (node.lensState.drops = el.checked));
+bind("lens-haze", (el) => (node.lensState.haze = +el.value));
+bind("shake", (el) => (node.shake = +el.value));
+bind("infrared", (el) => (node.infrared = el.checked));
+const knock = $<HTMLButtonElement>("knock");
+knock.onclick = () => {
+  if (node.isKnocked) node.fix();
+  else node.knock();
+  knock.textContent = node.isKnocked ? "Put the camera back" : "Knock the camera";
+};
 
 // --- camera node --------------------------------------------------------
 type Reading = { t: string; level_cm?: number; waterline_y?: number; coverage: number; confidence: number; sam_ms: number };
@@ -266,6 +348,7 @@ renderer.setAnimationLoop((now) => {
   if (now - frameAt < FRAME_MS - 2) return; // 30 fps, also on 120 Hz screens
   frameAt = now;
   const dt = clock.getDelta();
+  stepDamming();
   if (surge) {
     const k = Math.min(1, (performance.now() - surge.t0) / 1000 / surge.secs);
     const e = k * k * (3 - 2 * k); // slow start, fast middle: how a flood front arrives
@@ -277,11 +360,12 @@ renderer.setAnimationLoop((now) => {
   world.update(state, dt);
   controls.update();
   world.setWaterEnvironment(mainEnv);
+  renderer.toneMappingExposure = world.exposure;
   renderer.render(world.scene, camera);
   if (performance.now() - feedAt > 500) {
     feedAt = performance.now();
     node.render();
-    feedCtx.drawImage(node.canvas, 0, 0);
+    feedCtx.drawImage(node.output, 0, 0);
     drawChart();
   }
 });

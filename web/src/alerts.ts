@@ -32,7 +32,7 @@ type View = {
   station: string;
   config: Config;
   custom: boolean;
-  state: { level: Level; since: string; blind: boolean };
+  state: { level: Level; since: string; blind: boolean; camera_moved?: boolean };
   events: Event[] | null;
   editable: boolean;
   role: "public" | "judge" | "admin";
@@ -153,7 +153,7 @@ function render(v: View) {
         li.querySelector("time")!.textContent = time;
         badge(li.querySelector(".level-badge")!, e.kind === "blind" ? e.from : e.to);
         li.querySelector(".why")!.textContent =
-          e.kind === "false_alarm" ? `Marked as a false alarm (${e.by ?? "someone"})` : e.kind === "blind" ? "Camera cannot see: level kept" : sentence(e.reason);
+          e.kind === "false_alarm" ? `Marked as a false alarm (${e.by ?? "someone"})` : e.kind === "blind" ? "Camera cannot see: level kept" : e.kind === "moved" ? "Camera moved: readings paused until it is recalibrated" : sentence(e.reason);
         return li;
       }),
   );
@@ -366,5 +366,26 @@ fetch(`/api/stations/${twin()}/alerts`)
   .then((v: View) => {
     badge($("alert-level"), v.state.level);
     $("wa-on").hidden = !(v.subscribers > 0);
+    $("moved").hidden = !v.state.camera_moved;
   })
   .catch(() => {});
+
+// --- a camera knocked off its mount --------------------------------------------
+// The service pauses the readings when the gauge is no longer where it was
+// calibrated; the feed says so until it is back in place or recalibrated.
+const moved = $("moved");
+const checkMoved = () =>
+  fetch(`/api/stations/${twin()}/alerts`)
+    .then((r) => r.json())
+    .then((v: View) => (moved.hidden = !v.state.camera_moved))
+    .catch(() => {});
+events.addEventListener("alert", (e) => {
+  const a: AlertMsg = JSON.parse((e as MessageEvent).data);
+  if (a.station === twin() && a.event.kind === "moved") moved.hidden = false;
+});
+for (const name of ["reading", "station"]) {
+  events.addEventListener(name, (e) => {
+    if (!moved.hidden && JSON.parse((e as MessageEvent).data).id === twin()) checkMoved();
+  });
+}
+$("recalibrate").addEventListener("click", () => $("calibrate").click());

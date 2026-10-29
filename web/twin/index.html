@@ -58,6 +58,11 @@
         <canvas id="feed-overlay"></canvas>
         <span class="feed-tag"><span class="rec" aria-hidden="true"></span>Camera node</span>
         <span class="feed-ms" id="sam-ms"></span>
+        <div id="moved" class="feed-moved" hidden role="status">
+          <b>Camera moved</b>
+          <span>The gauge is not where it was calibrated. Readings are paused; the alert level is kept.</span>
+          <button id="recalibrate" type="button">Recalibrate</button>
+        </div>
       </div>
       <p class="feed-state" id="send-state" aria-live="polite">Camera node idle</p>
 
@@ -144,18 +149,75 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       </div>
-      <div class="field">
-        <label for="level">Water level <output id="level-out"></output></label>
-        <input type="range" id="level" min="0.2" max="3.6" step="0.01" value="0.45" />
+      <div class="tune-tabs" role="tablist" aria-label="What to adjust">
+        <button type="button" role="tab" data-tab="stream" aria-selected="true">Stream</button>
+        <button type="button" role="tab" data-tab="scene" aria-selected="false">Scene</button>
+        <button type="button" role="tab" data-tab="camera" aria-selected="false">Camera</button>
       </div>
-      <div class="field">
-        <label for="mud">Mud <output id="mud-out"></output></label>
-        <input type="range" id="mud" min="0" max="1" step="0.01" value="0.15" />
+
+      <div class="tune-pane" data-pane="stream" role="tabpanel">
+        <div class="field">
+          <label for="level">Water level <output id="level-out"></output></label>
+          <input type="range" id="level" min="0.2" max="3.6" step="0.01" value="0.45" />
+        </div>
+        <div class="field">
+          <label for="mud">Mud <output id="mud-out"></output></label>
+          <input type="range" id="mud" min="0" max="1" step="0.01" value="0.15" />
+        </div>
       </div>
-      <div class="calib">
-        <button id="calibrate" class="soft-btn" type="button">Calibrate with Muse Spark</button>
-        <p class="hint" id="calib-state">No calibration yet</p>
-      </div>
+
+      <fieldset class="conditions tune-pane" data-pane="scene" role="tabpanel" hidden>
+        <legend class="pane-note">On the banks and in the sky</legend>
+        <div class="field">
+          <span class="field-k" id="people-k">People near the water</span>
+          <div class="seg-pick" role="radiogroup" aria-labelledby="people-k" data-for="people">
+            <button type="button" role="radio" data-v="0" aria-checked="true">None</button>
+            <button type="button" role="radio" data-v="1" aria-checked="false">1</button>
+            <button type="button" role="radio" data-v="2" aria-checked="false">2</button>
+            <button type="button" role="radio" data-v="3" aria-checked="false">3</button>
+          </div>
+          <select id="people" class="sr-only" tabindex="-1" aria-hidden="true">
+            <option value="0" selected>None</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+        <label class="check"><span>Logs in the water<small>A flash flood brings them down by itself</small></span><input type="checkbox" id="logs" /></label>
+        <label class="check"><span>Debris flow<small>Thick mud carrying rocks, whole trees and wreckage</small></span><input type="checkbox" id="debris-flow" /></label>
+        <button id="damming" class="soft-btn" type="button">Damming upstream, then release</button>
+        <div class="field">
+          <label for="rain">Rain <output data-words="None,Drizzle,Rain,Downpour" for="rain"></output></label>
+          <input type="range" id="rain" min="0" max="1" step="0.01" value="0" />
+        </div>
+        <div class="field">
+          <label for="night">Time of day <output data-words="Day,Dusk,Night" for="night"></output></label>
+          <input type="range" id="night" min="0" max="1" step="0.01" value="0" />
+        </div>
+      </fieldset>
+
+      <fieldset class="conditions tune-pane" data-pane="camera" role="tabpanel" hidden>
+        <legend class="pane-note">The camera in the field</legend>
+        <label class="check"><span>Night vision<small>Infrared with its own light: it still reads the gauge in the dark</small></span><input type="checkbox" id="infrared" checked /></label>
+        <label class="check"><span>Raindrops on the lens</span><input type="checkbox" id="lens-drops" /></label>
+        <div class="field">
+          <label for="lens-haze">Fog or dirt on the lens <output data-words="Clean,Smudged,Dirty,Fogged" for="lens-haze"></output></label>
+          <input type="range" id="lens-haze" min="0" max="1" step="0.01" value="0" />
+        </div>
+        <div class="field">
+          <label for="shake">Wind shaking the pole <output data-words="Calm,Breeze,Gusts,Storm" for="shake"></output></label>
+          <input type="range" id="shake" min="0" max="1" step="0.01" value="0" />
+        </div>
+        <div class="knock-row">
+          <button id="knock" class="soft-btn knock" type="button">Knock the camera</button>
+          <p class="hint">As a branch or a curious hand would. Vigiax notices the gauge moved and pauses its readings.</p>
+        </div>
+        <div class="calib">
+          <button id="calibrate" class="soft-btn" type="button">Calibrate with Muse Spark</button>
+          <p class="hint" id="calib-state">No calibration yet</p>
+        </div>
+      </fieldset>
+
       <dl class="meta">
         <div><dt>Station</dt><dd><code id="station-id">twin</code></dd></div>
         <div><dt>Model cost today</dt><dd id="cost">–</dd></div>

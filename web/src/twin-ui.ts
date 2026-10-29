@@ -59,8 +59,37 @@ addEventListener("pointerdown", (e) => {
   if (!tuning.hidden && !tuning.contains(t) && !tune.contains(t)) setTuning(false);
 });
 
+// Tabs: the stream, the scene around it, the camera in the field.
+tuning.querySelectorAll<HTMLButtonElement>("[data-tab]").forEach((tab) =>
+  tab.addEventListener("click", () => {
+    tuning.querySelectorAll("[data-tab]").forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
+    tuning.querySelectorAll<HTMLElement>("[data-pane]").forEach((p) => (p.hidden = p.dataset.pane !== tab.dataset.tab));
+  }),
+);
+
+// People as one-tap choices; main.ts reads the hidden select.
+tuning.querySelectorAll<HTMLElement>(".seg-pick").forEach((group) => {
+  const select = $<HTMLSelectElement>(group.dataset.for!);
+  group.querySelectorAll<HTMLButtonElement>("[data-v]").forEach((b) =>
+    b.addEventListener("click", () => {
+      group.querySelectorAll("[data-v]").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
+      select.value = b.dataset.v!;
+      select.dispatchEvent(new Event("input"));
+    }),
+  );
+});
+
+// Sliders without a number say what they mean: "Drizzle", "Gusts", "Night".
+tuning.querySelectorAll<HTMLOutputElement>("output[data-words]").forEach((out) => {
+  const input = $<HTMLInputElement>(out.htmlFor.value);
+  const list = out.dataset.words!.split(",");
+  const say = () => (out.textContent = +input.value === 0 ? list[0] : list[Math.min(list.length - 1, 1 + Math.floor(+input.value * (list.length - 1) * 0.999))]);
+  input.addEventListener("input", say);
+  say();
+});
+
 // Filled track on the sliders; main.ts moves their values during a surge.
-const sliders = [$<HTMLInputElement>("level"), $<HTMLInputElement>("mud")];
+const sliders = [...tuning.querySelectorAll<HTMLInputElement>('input[type="range"]')];
 const painted = new Map<HTMLInputElement, string>();
 function paintSliders() {
   for (const s of sliders) {
@@ -99,4 +128,4 @@ $("surge").addEventListener("click", () => {
   surgeTimer = window.setInterval(tick, 1000);
 });
 // Moving the level by hand cancels the surge in main.ts, so the banner goes too.
-sliders[0].addEventListener("input", stopSurge);
+$("level").addEventListener("input", stopSurge);
