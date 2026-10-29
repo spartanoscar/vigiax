@@ -26,11 +26,17 @@ func NewClient(apiKey string) *Client {
 	return &Client{BaseURL: DefaultBaseURL, APIKey: apiKey, HTTP: &http.Client{Timeout: 60 * time.Second}}
 }
 
-// Content is one part of a user message: input_text or input_image.
+// Content is one part of a user message: input_text, input_image or input_video.
 type Content struct {
 	Type     string `json:"type"`
 	Text     string `json:"text,omitempty"`
 	ImageURL string `json:"image_url,omitempty"`
+	VideoURL string `json:"video_url,omitempty"`
+}
+
+// MP4 inlines an H.264 clip as a base64 data URL (SAM 3.1 tracks objects across its frames).
+func MP4(b []byte) Content {
+	return Content{Type: "input_video", VideoURL: "data:video/mp4;base64," + base64.StdEncoding.EncodeToString(b)}
 }
 
 func Text(s string) Content { return Content{Type: "input_text", Text: s} }
