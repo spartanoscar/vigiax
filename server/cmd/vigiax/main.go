@@ -67,7 +67,8 @@ type server struct {
 	lastAt     map[string]time.Time
 	alertState map[string]*stationAlerts
 	agentState map[string]*agentRuns
-	frames     map[string]frame // last frame per station, for the agent's look at the scene
+	frames     map[string]frame  // last frame per station, for the agent's look at the scene
+	moved      map[string]string // stations whose camera moved since calibration, and why
 }
 
 func main() {
@@ -93,6 +94,7 @@ func main() {
 		alertState:  map[string]*stationAlerts{},
 		agentState:  map[string]*agentRuns{},
 		frames:      map[string]frame{},
+		moved:       map[string]string{},
 		agentBudget: loadBudget(filepath.Join(dir, "budget-agent.json"), envFloat("AGENT_DAILY_BUDGET_USD", 1), envFloat("AGENT_DAILY_BUDGET_USD", 1)),
 	}
 	if k := os.Getenv("BASETEN_API_KEY"); k != "" {
@@ -118,6 +120,8 @@ func main() {
 	mux.HandleFunc("/api/stations/{id}/alerts", s.handleAlerts)
 	mux.HandleFunc("POST /api/stations/{id}/alerts/false-alarm", s.postFalseAlarm)
 	mux.HandleFunc("GET /api/stations/{id}/agent", s.getAgent)
+	mux.HandleFunc("GET /api/stations/{id}/reference.jpg", s.handleReference)
+	mux.HandleFunc("POST /api/stations/{id}/reference", s.handleReference)
 	s.setupWhatsApp(mux, dir)
 
 	addr := env("ADDR", ":8790")
@@ -128,7 +132,11 @@ func main() {
 func (s *server) loadStations() error {
 	files, _ := filepath.Glob(filepath.Join(s.dir, "*.json"))
 	for _, f := range files {
-		if _, err := s.station(strings.TrimSuffix(filepath.Base(f), ".json")); err != nil {
+		id := strings.TrimSuffix(filepath.Base(f), ".json")
+		if strings.Contains(id, ".") {
+			continue // a station's other files (<id>.ref.json), not a station
+		}
+		if _, err := s.station(id); err != nil {
 			return err
 		}
 	}
@@ -222,6 +230,7 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 	sum := summarize(st, now)
 	s.hub.publish("reading", sum)
 	s.checkAlerts(st, rd)
+	s.maybeReference(st, rd, img)
 	writeJSON(w, sum)
 }
 
@@ -276,6 +285,9 @@ func (s *server) postCalibration(w http.ResponseWriter, r *http.Request) {
 		httpError(w, code, err)
 		return
 	}
+	s.mu.Lock()
+	delete(s.moved, st.Config().ID) // a new calibration matches the camera as it is now
+	s.mu.Unlock()
 	if err := st.SetCalibration(cal); err != nil {
 		httpError(w, http.StatusInternalServerError, err)
 		return

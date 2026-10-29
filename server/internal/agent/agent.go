@@ -35,6 +35,7 @@ type Facts struct {
 	Recent      []Point        `json:"recent_levels"` // oldest first
 	Lines       map[string]any `json:"rules"`
 	Scene       *scene.Reading `json:"scene,omitempty"`
+	Change      *scene.Change  `json:"change_since_normal_day,omitempty"` // against the station's reference frame
 	History     []alert.Event  `json:"today"`
 	Subscribers int            `json:"phones_signed_up"`
 }
@@ -73,7 +74,9 @@ Decide whether the level should stay (action "hold", level = rule_level) or go H
 Raise only for a concrete reason in the facts, for example:
 - people or vehicles near the water while the water is rising or above a line;
 - muddy or turbulent water carrying debris while the water is rising (a flood front);
-- the rise is accelerating (5-minute rate well above the 30-minute rate) and the next line is near.
+- the rise is accelerating (5-minute rate well above the 30-minute rate) and the next line is near;
+- against the normal-day frame (change_since_normal_day) the channel is dammed, new logs, rocks or mud fill it, or a
+  structure is damaged or gone. A stream that drops suddenly while it rains can mean a dam of debris upstream.
 Never go below rule_level. When in doubt between two levels, prefer the safer (higher) one only if the facts support it; otherwise hold.
 A camera jump (woke_by.kind "jump") may be a moved camera or a flood front: weigh the scene before raising.
 
@@ -218,8 +221,11 @@ func knownCm(f Facts) []float64 {
 	if f.LevelCm != nil {
 		k = append(k, *f.LevelCm)
 	}
-	for _, p := range f.Recent {
+	for i, p := range f.Recent {
 		k = append(k, p.LevelCm)
+		for _, q := range f.Recent[i+1:] { // "it fell 52 cm" between two measured levels
+			k = append(k, math.Abs(p.LevelCm-q.LevelCm))
+		}
 	}
 	if f.Rise5 != nil {
 		k = append(k, math.Abs(*f.Rise5)*5, math.Abs(*f.Rise5))

@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -14,6 +16,7 @@ import (
 	"time"
 
 	"github.com/spartanoscar/vigiax/server/internal/alert"
+	"github.com/spartanoscar/vigiax/server/internal/gauge"
 	"github.com/spartanoscar/vigiax/server/internal/station"
 )
 
@@ -178,9 +181,19 @@ func messages(c *alert.Config, e alert.Event) alertMessage {
 func (s *server) checkAlerts(st *station.Station, rd station.Reading) {
 	cfg := st.Config()
 	c := alertConfig(cfg)
+	o := observe(st, &c, rd)
+	if o.JumpCm != nil && cfg.Calib != nil {
+		s.checkPlacement(cfg, rd.T)
+	}
+	s.mu.Lock()
+	why, moved := s.moved[cfg.ID]
+	s.mu.Unlock()
+	if moved {
+		o = alert.Obs{T: rd.T, Moved: true, MovedWhy: why}
+	}
 	a := s.alerts(cfg.ID)
 	a.mu.Lock()
-	e := a.state.Step(&c, observe(st, &c, rd))
+	e := a.state.Step(&c, o)
 	if e != nil {
 		a.record(*e)
 	}
@@ -188,6 +201,37 @@ func (s *server) checkAlerts(st *station.Station, rd station.Reading) {
 	if e != nil {
 		s.announce(cfg.ID, &c, *e)
 	}
+}
+
+// checkPlacement asks SAM where the gauge is after a jump: if it is not where
+// it was calibrated, the camera moved and its readings stop counting until the
+// gauge is back in place or the station is calibrated again.
+func (s *server) checkPlacement(cfg station.Config, now time.Time) {
+	s.mu.Lock()
+	f, ok := s.frames[cfg.ID]
+	s.mu.Unlock()
+	if !ok || now.Sub(f.at) > frameFresh {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	p, err := gauge.Check(ctx, s.meta, f.jpeg, cfg.Calib)
+	s.budget.spend(now, "gauge-check", p.CostUSD)
+	if err != nil {
+		log.Printf("%s: gauge check: %v", cfg.ID, err)
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch {
+	case !p.Found:
+		s.moved[cfg.ID] = "after a jump in the level the gauge cannot be found in the frame: the camera moved or something covers it"
+	case p.Moved:
+		s.moved[cfg.ID] = fmt.Sprintf("after a jump in the level the gauge is %+.0f px sideways and %+.0f px vertically from where it was calibrated: the camera moved", p.ShiftX, p.ShiftY)
+	default:
+		delete(s.moved, cfg.ID) // the gauge is where it was: the jump is the water
+	}
+	log.Printf("%s: gauge check: found %v, moved %v (%+.0f, %+.0f px)", cfg.ID, p.Found, p.Moved, p.ShiftX, p.ShiftY)
 }
 
 func (s *server) announce(id string, c *alert.Config, e alert.Event) {

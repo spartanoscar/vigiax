@@ -116,12 +116,48 @@ func TestMessage(t *testing.T) {
 	lv, rise := 192.0, 7.6
 	e := Event{T: t0, Kind: "raise", From: Attention, To: Alert, LevelCm: &lv, RiseCmPerMin: &rise}
 	es := Text(Fill(&c, e, "es"), "es")
-	want := "⚠️ ALERTA DE CRECIENTE en la quebrada del gemelo digital.\nQué pasa: El agua subió 38 cm en 5 minutos y está a 1,9 m.\nQué hacer: Aléjate de la orilla y no cruces el puente.\nAviso automático de Vigiax a las 15:00. Si estás en emergencia llama al 123."
+	want := "⚠️ ALERTA DE CRECIENTE en la quebrada del gemelo digital.\nQué pasa: El agua sube 7,6 cm por minuto y está a 1,9 m.\nQué hacer: Aléjate de la orilla y no cruces el puente.\nAviso automático de Vigiax a las 15:00. Si estás en emergencia llama al 123."
 	if es != want {
 		t.Fatalf("es:\n%s\nwant:\n%s", es, want)
 	}
 	en := Text(Fill(&c, e, "en"), "en")
-	if !strings.Contains(en, "FLASH FLOOD ALERT at the digital twin's stream.\nWhat is happening: The water rose 38 cm in 5 minutes and is at 1.9 m.") {
+	if !strings.Contains(en, "FLASH FLOOD ALERT at the digital twin's stream.\nWhat is happening: The water is rising 7.6 cm a minute and is at 1.9 m.") {
 		t.Fatalf("en:\n%s", en)
+	}
+}
+
+func TestMovedCameraKeepsTheLevelUntilBack(t *testing.T) {
+	c := TwinDefaults()
+	s := State{Level: Attention}
+	if e := s.Step(&c, Obs{T: t0, Moved: true, MovedWhy: "gauge 120 px sideways"}); e == nil || e.Kind != "moved" || s.Level != Attention {
+		t.Fatalf("moved: %+v, level %v", e, s.Level)
+	}
+	for i := 1; i < 30; i++ { // a knocked camera reading the far bank must not raise anything
+		if e := s.Step(&c, Obs{T: t0.Add(time.Duration(i) * 5 * time.Second), Moved: true}); e != nil {
+			t.Fatalf("event while moved: %+v", e)
+		}
+	}
+	s.Step(&c, obs(40, 120))
+	if s.Moved {
+		t.Fatal("still marked moved after a normal reading")
+	}
+}
+
+func TestSuddenDropRaisesAlert(t *testing.T) {
+	c := TwinDefaults()
+	var s State
+	var e *Event
+	drop := -2.4 // cm/min, faster than the 1.5 default
+	for i := range 3 {
+		o := obs(i, 60)
+		o.RiseCmPerMin = &drop
+		e = s.Step(&c, o)
+	}
+	if e == nil || e.To != Alert || !strings.Contains(e.Reason, "damming") {
+		t.Fatalf("sudden drop: %+v", e)
+	}
+	msg := Text(Fill(&c, *e, "en"), "en")
+	if !strings.Contains(msg, "The water is falling 2.4 cm a minute: possible damming upstream") {
+		t.Fatalf("message:\n%s", msg)
 	}
 }

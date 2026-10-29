@@ -22,7 +22,8 @@ var liveStations = []station.Config{{
 	Alerts: &alert.Config{
 		Place: "el río North Canadian en El Reno, Oklahoma", PlaceEn: "the North Canadian River at El Reno, Oklahoma",
 		Confirm: 1, RiseWindowMin: 180, LowerAfterMin: 120, // one photo an hour
-		Note: "Demo lines between today's level (about 1.2 m) and the October 2026 peak (4.6 m); not official flood stages.",
+		DropCmPerMin: ptr(0.5), // 90 cm in 3 hours
+		Note:         "Demo lines between today's level (about 1.2 m) and the October 2026 peak (4.6 m); not official flood stages.",
 		Rules: alert.Rules{
 			Attention: alert.Rule{Enabled: true, LevelCm: ptr(250), RiseCmPerMin: ptr(0.5), Audience: "leader", Channels: []string{"push"},
 				Why:    "The river rises 30 cm an hour or passes 2.5 m: someone should watch it.",
@@ -123,6 +124,7 @@ func (s *server) pollUSGS(ctx context.Context, st *station.Station) error {
 		}
 		s.hub.publish("reading", summarize(st, time.Now()))
 		s.checkAlerts(st, rd)
+		s.maybeReference(st, rd, img)
 		log.Printf("%s: %s water %.1f %% conf %.2f blind %v", cfg.ID, t.Format(time.RFC3339), rd.Coverage*100, rd.Confidence, rd.Blind)
 	}
 	return nil

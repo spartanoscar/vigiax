@@ -158,7 +158,7 @@ func (s *server) setupWhatsApp(mux *http.ServeMux, dataDir string) {
 }
 
 func (s *server) sendAlert(wa *whatsapp.Client, id string, c *alert.Config, e alert.Event) {
-	if e.Kind == "jump" {
+	if e.Kind == "jump" || e.Kind == "moved" {
 		return // shown on the dashboard; the agent will check the camera before anyone is messaged
 	}
 	rule := c.Rule(e.To)

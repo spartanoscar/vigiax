@@ -28,6 +28,17 @@ const DefaultPrompt = "flood water"
 // keep is how many readings stay in memory: 4 hours at one frame every 5 s.
 const keep = 2880
 
+// MudPrompts are the second looks when the first prompt finds nothing.
+var MudPrompts = []string{"mud", "mudslide"}
+
+func best(r *sam.Result) float64 {
+	b := 0.0
+	for i := range r.Objects {
+		b = max(b, r.Objects[i].Confidence)
+	}
+	return b
+}
+
 // topMargin keeps the waterline search a few rows under the top of the gauge,
 // clear of the water seen behind it.
 const topMargin = 4
@@ -45,10 +56,11 @@ type Reading struct {
 	Confidence float64   `json:"confidence"`
 	SamMs      int64     `json:"sam_ms"`
 	CostUSD    float64   `json:"cost_usd"`
-	Blind      bool      `json:"blind,omitempty"`        // no water found with confidence: see MinConfidence
-	AtTop      bool      `json:"at_gauge_top,omitempty"` // the water covers the whole gauge: the level is at least LevelCm
-	RefCm      *float64  `json:"ref_cm,omitempty"`       // official gage at the same time, when there is one
-	FrameURL   string    `json:"frame_url,omitempty"`    // public image of the frame, for remote cameras
+	Blind      bool      `json:"blind,omitempty"` // no water found with confidence: see MinConfidence
+	AtTop      bool      `json:"at_gauge_top,omitempty"`
+	Mud        bool      `json:"mud,omitempty"`       // measured on "mud": the flow is a slurry SAM does not call water // the water covers the whole gauge: the level is at least LevelCm
+	RefCm      *float64  `json:"ref_cm,omitempty"`    // official gage at the same time, when there is one
+	FrameURL   string    `json:"frame_url,omitempty"` // public image of the frame, for remote cameras
 }
 
 type Config struct {
@@ -165,6 +177,24 @@ func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte,
 		return Reading{}, err
 	}
 	rd.T, rd.SamMs, rd.CostUSD = rd.T.UTC(), r.Latency.Milliseconds(), r.CostUSD
+	// A debris flow is not "water" to SAM: on real ones (Kedarnath, Santiaguito)
+	// "flood water" found nothing where "mud" found the flow, and the twin's
+	// slurry answers to "mudslide". Asked in turn only when nothing was found yet,
+	// so they cost one or two more images on those frames.
+	for _, p := range MudPrompts {
+		if best(r) >= MinConfidence || cfg.Prompt == p {
+			break
+		}
+		m, err := sam.Segment(ctx, c, jpeg, p)
+		if err != nil {
+			break
+		}
+		rd.SamMs += m.Latency.Milliseconds()
+		rd.CostUSD += m.CostUSD
+		if best(m) >= MinConfidence {
+			r, rd.Mud = m, true
+		}
+	}
 	if r.FrameW > 0 {
 		area := 0.0
 		for i := range r.Objects {
@@ -283,3 +313,38 @@ func (s *Station) Rise(now time.Time, window time.Duration) (cmPerMin float64, n
 
 // Add stores a reading measured elsewhere (a replay or a test).
 func (s *Station) Add(r Reading) error { return s.append(r) }
+
+// Reference is the station's normal-day frame: what the stream looks like
+// when nothing is happening, for Muse Spark to compare events against.
+type Reference struct {
+	T       time.Time `json:"t"`
+	LevelCm *float64  `json:"level_cm,omitempty"`
+	By      string    `json:"by"` // "auto" or "manual"
+}
+
+// SetReference stores a normal-day frame.
+func (s *Station) SetReference(jpeg []byte, ref Reference) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := os.WriteFile(s.path(".ref.jpg"), jpeg, 0o644); err != nil {
+		return err
+	}
+	b, _ := json.Marshal(ref)
+	return os.WriteFile(s.path(".ref.json"), b, 0o644)
+}
+
+// GetReference returns the normal-day frame, if the station has one.
+func (s *Station) GetReference() ([]byte, Reference, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var ref Reference
+	b, err := os.ReadFile(s.path(".ref.json"))
+	if err != nil || json.Unmarshal(b, &ref) != nil {
+		return nil, ref, false
+	}
+	jpeg, err := os.ReadFile(s.path(".ref.jpg"))
+	if err != nil {
+		return nil, ref, false
+	}
+	return jpeg, ref, true
+}

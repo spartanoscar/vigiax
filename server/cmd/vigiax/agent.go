@@ -67,7 +67,7 @@ func (s *server) keepFrame(id string, jpeg []byte, at time.Time) {
 // wakeAgent runs the agent for an event; one run per station at a time, and
 // an event that arrives meanwhile is handled right after.
 func (s *server) wakeAgent(id string, e alert.Event) {
-	if s.agent == nil || e.By == "agent" || (e.Kind != "raise" && e.Kind != "jump" && e.Kind != "blind") {
+	if s.agent == nil || e.By == "agent" || e.By == "scene" || (e.Kind != "raise" && e.Kind != "jump" && e.Kind != "blind") {
 		return
 	}
 	a := s.agentFor(id)
@@ -106,53 +106,87 @@ func (s *server) runAgent(id string, woke alert.Event) {
 	if st == nil {
 		return
 	}
+	var before []agent.Step // wake and scene steps, kept with the run
 	say := func(step agent.Step) { s.hub.publish("agent", map[string]any{"station": id, "step": step}) }
+	sayBefore := func(step agent.Step) {
+		before = append(before, step)
+		say(step)
+	}
 	now := time.Now()
 	if err := s.agentBudget.allow(now, "agent", s.agentBudget.limit); err != nil {
-		say(agent.Step{T: now, Kind: "error", Text: "agent budget for today is used up: the rule level stands"})
+		sayBefore(agent.Step{T: now, Kind: "error", Text: "agent budget for today is used up: the rule level stands"})
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	f := s.facts(st, woke, now)
-	say(agent.Step{T: now, Kind: "wake", Text: fmt.Sprintf("woken by %s (%s → %s): %s", woke.Kind, woke.From, woke.To, woke.Reason)})
+	sayBefore(agent.Step{T: now, Kind: "wake", Text: fmt.Sprintf("woken by %s (%s → %s): %s", woke.Kind, woke.From, woke.To, woke.Reason)})
 
 	var sceneUSD float64
 	if jpeg := s.sceneFrame(ctx, st, now); jpeg != nil {
-		sr, err := scene.Read(ctx, s.meta, scene.DefaultModel, scene.DefaultEffort, jpeg)
-		if err != nil {
-			say(agent.Step{T: time.Now(), Kind: "error", Text: "scene: " + err.Error()})
+		// The frame on its own and against the normal-day reference, in parallel.
+		var sr *scene.Reading
+		var ch *scene.Change
+		var srErr, chErr error
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sr, srErr = scene.Read(ctx, s.meta, scene.DefaultModel, scene.DefaultEffort, jpeg)
+		}()
+		if ref, _, ok := st.GetReference(); ok {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				ch, chErr = scene.Compare(ctx, s.meta, scene.DefaultModel, scene.DefaultEffort, ref, jpeg)
+			}()
+		}
+		wg.Wait()
+		floor, why := 0, ""
+		if srErr != nil {
+			sayBefore(agent.Step{T: time.Now(), Kind: "error", Text: "scene: " + srErr.Error()})
 		} else {
 			f.Scene, sceneUSD = sr, sr.CostUSD
-			say(agent.Step{T: time.Now(), Kind: "scene", Text: "Muse Spark: " + sr.Summary, USD: sr.CostUSD})
+			sayBefore(agent.Step{T: time.Now(), Kind: "scene", Text: "Muse Spark: " + sr.Summary, USD: sr.CostUSD})
+			floor, why = sr.Floor()
+		}
+		if chErr != nil {
+			sayBefore(agent.Step{T: time.Now(), Kind: "error", Text: "compare: " + chErr.Error()})
+		} else if ch != nil {
+			f.Change, sceneUSD = ch, sceneUSD+ch.CostUSD
+			sayBefore(agent.Step{T: time.Now(), Kind: "scene", Text: "Against the normal-day frame: " + ch.Notable, USD: ch.CostUSD})
+			if lv, w := ch.Floor(); lv > floor {
+				floor, why = lv, w
+			}
+		}
+		// Fixed scene rules come before the agent's judgement: a debris flow, a
+		// dammed channel or a house in the water is an emergency whatever the gauge says.
+		if floor > 0 {
+			if e := s.raiseTo(st, alert.Level(floor), "scene: "+why, "scene", f); e != nil {
+				sayBefore(agent.Step{T: time.Now(), Kind: "scene", Text: fmt.Sprintf("scene rule → %s: %s", e.To, why)})
+				f.RuleLevel = e.To
+			}
 		}
 	}
 	r := agent.Decide(ctx, s.agent, f, say)
+	r.Steps = append(before, r.Steps...)
 	r.CostUSD += sceneUSD
 	s.agentBudget.spend(time.Now(), "agent", r.CostUSD)
 
 	if r.Verified && r.Decision.Action == "raise" {
 		var to alert.Level
 		if to.UnmarshalJSON([]byte(`"`+r.Decision.Level+`"`)) == nil {
-			c := alertConfig(st.Config())
-			al := s.alerts(id)
-			al.mu.Lock()
-			e := al.state.Raise(time.Now(), to, "agent: "+r.Decision.Reason, "agent", f.LevelCm, f.Rise5)
-			if e != nil {
-				al.record(*e)
-			}
-			al.mu.Unlock()
-			if e != nil {
-				s.announce(id, &c, *e)
-			}
+			s.raiseTo(st, to, "agent: "+r.Decision.Reason, "agent", f)
 		}
 	}
 	verdict := "holds the rule level"
 	if r.Decision != nil {
 		verdict = r.Decision.Action + " → " + r.Decision.Level
 	}
-	say(agent.Step{T: time.Now(), Kind: "decide", Text: fmt.Sprintf("%s · %d tokens · %.1f s", verdict,
-		r.Tokens.PromptTokens+r.Tokens.CompletionTokens, r.Seconds), USD: r.CostUSD})
+	decided := agent.Step{T: time.Now(), Kind: "decide", Text: fmt.Sprintf("%s · %d tokens · %.1f s", verdict,
+		r.Tokens.PromptTokens+r.Tokens.CompletionTokens, r.Seconds), USD: r.CostUSD}
+	r.Steps = append(r.Steps, decided)
+	say(decided)
 	s.saveRun(id, r)
 	log.Printf("%s: agent %s (verified %v, %d attempt(s), $%.4f)", id, verdict, r.Verified, r.Attempts, r.CostUSD)
 }
@@ -275,4 +309,22 @@ func (s *server) getAgent(w http.ResponseWriter, r *http.Request) {
 	runs := append([]agent.Result(nil), a.runs...)
 	a.mu.Unlock()
 	writeJSON(w, map[string]any{"station": id, "enabled": s.agent != nil, "model": agent.DefaultModel, "runs": runs})
+}
+
+// raiseTo lifts a station's alert above what the level rules set (never lower)
+// and announces it; nil when the station was already there.
+func (s *server) raiseTo(st *station.Station, to alert.Level, reason, by string, f agent.Facts) *alert.Event {
+	id := st.Config().ID
+	c := alertConfig(st.Config())
+	al := s.alerts(id)
+	al.mu.Lock()
+	e := al.state.Raise(time.Now(), to, reason, by, f.LevelCm, f.Rise5)
+	if e != nil {
+		al.record(*e)
+	}
+	al.mu.Unlock()
+	if e != nil {
+		s.announce(id, &c, *e)
+	}
+	return e
 }

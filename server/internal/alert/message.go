@@ -53,6 +53,15 @@ func Fill(c *Config, e Event, lang string) Fields {
 			fact = "The level changed at once between two frames: the camera may have moved, or a flood front arrived."
 			action = "If you can, check the camera and the stream from a safe place."
 		}
+	case "moved":
+		title = "CÁMARA MOVIDA"
+		fact = "La regla ya no está donde se calibró: la cámara se movió. Las lecturas quedan en pausa y se mantiene el nivel de alerta."
+		action = "Revisa el soporte de la cámara y vuelve a calibrar."
+		if en {
+			title = "CAMERA MOVED"
+			fact = "The gauge is no longer where it was calibrated: the camera moved. Readings are paused and the alert level is kept."
+			action = "Check the camera mount and recalibrate."
+		}
 	case "blind":
 		title = "CÁMARA SIN VISIÓN"
 		fact = "La cámara no ve el agua (noche, niebla o lente tapado). Se mantiene el último nivel de alerta."
@@ -73,17 +82,36 @@ func Fill(c *Config, e Event, lang string) Fields {
 
 func facts(c *Config, e Event, en bool) string {
 	var parts []string
-	if e.RiseCmPerMin != nil && *e.RiseCmPerMin > 0.05 {
-		cm, min := *e.RiseCmPerMin*c.RiseWindowMin, c.RiseWindowMin
-		switch {
-		case min > 60 && en: // hourly cameras: a rate reads better than a long window
-			parts = append(parts, fmt.Sprintf("The water is rising %.0f cm an hour", *e.RiseCmPerMin*60))
-		case min > 60:
-			parts = append(parts, fmt.Sprintf("El agua sube %.0f cm por hora", *e.RiseCmPerMin*60))
-		case en:
-			parts = append(parts, fmt.Sprintf("The water rose %.0f cm in %.0f minutes", cm, min))
-		default:
-			parts = append(parts, fmt.Sprintf("El agua subió %.0f cm en %.0f minutos", cm, min))
+	// The rate as measured, not stretched over the window: a fall of 50 cm in
+	// one minute must not read as "250 cm in 5 minutes".
+	rate := func(v float64, unitEn, unitEs string) (string, string) {
+		f := "%.0f"
+		if v < 10 {
+			f = "%.1f"
+		}
+		n := fmt.Sprintf(f, v)
+		return n + " cm " + unitEn, strings.Replace(n, ".", ",", 1) + " cm " + unitEs
+	}
+	switch {
+	case e.RiseCmPerMin != nil && *e.RiseCmPerMin < -0.05 && strings.Contains(e.Reason, "damming"):
+		r, rs := rate(-*e.RiseCmPerMin, "a minute", "por minuto")
+		if c.RiseWindowMin > 60 {
+			r, rs = rate(-*e.RiseCmPerMin*60, "an hour", "por hora")
+		}
+		if en {
+			parts = append(parts, "The water is falling "+r+": possible damming upstream")
+		} else {
+			parts = append(parts, "El agua baja "+rs+": posible represamiento aguas arriba")
+		}
+	case e.RiseCmPerMin != nil && *e.RiseCmPerMin > 0.05:
+		r, rs := rate(*e.RiseCmPerMin, "a minute", "por minuto")
+		if c.RiseWindowMin > 60 { // hourly cameras
+			r, rs = rate(*e.RiseCmPerMin*60, "an hour", "por hora")
+		}
+		if en {
+			parts = append(parts, "The water is rising "+r)
+		} else {
+			parts = append(parts, "El agua sube "+rs)
 		}
 	}
 	if e.LevelCm != nil {

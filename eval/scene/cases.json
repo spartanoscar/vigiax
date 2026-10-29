@@ -1,0 +1,162 @@
+[
+  {
+    "file": "scene/bolam-creek---2021-07-29-18.13.46.762-cdt.jpg",
+    "debris_flow": true,
+    "expect": {
+      "debris_kinds": [
+        "rocks_or_boulders"
+      ]
+    },
+    "note": "Debris flow in progress: muddy slurry running through a fresh boulder deposit (post-fire, Lava Fire, California). Hard case.",
+    "source": "https://commons.wikimedia.org/wiki/File:Bolam_Creek_-_2021_07_29-18.13.46.762-CDT.png",
+    "license": "Public domain",
+    "author": "United States Forest Service"
+  },
+  {
+    "file": "scene/hot-lahar-at-santiaguito.jpg",
+    "debris_flow": true,
+    "expect": {},
+    "note": "Hot lahar (volcanic debris flow) moving down a channel, Santiaguito, Guatemala.",
+    "source": "https://commons.wikimedia.org/wiki/File:Hot_lahar_at_Santiaguito.jpg",
+    "license": "Public domain",
+    "author": "USGS geologist Jeff Marso"
+  },
+  {
+    "file": "scene/lahar-mount-st.-helens.jpg",
+    "debris_flow": false,
+    "expect": {
+      "debris_kinds": [
+        "building_materials"
+      ],
+      "structures": "damaged_or_destroyed"
+    },
+    "note": "Lahar deposit after the flow, with a destroyed bridge: no flow in progress, damage must be seen.",
+    "source": "https://commons.wikimedia.org/wiki/File:Lahar,_Mount_St._Helens.jpg",
+    "license": "Public domain",
+    "author": "Dan Miller, U.S. Geological Survey"
+  },
+  {
+    "file": "scene/bolam-creek---2021-07-29-18.11.30.152-cdt.jpg",
+    "debris_flow": false,
+    "expect": {
+      "debris_kinds": [
+        "rocks_or_boulders"
+      ]
+    },
+    "note": "Boulder deposit left by the same debris flow, no flow in view: not a flow in progress, but the debris must be seen.",
+    "source": "https://commons.wikimedia.org/wiki/File:Bolam_Creek_-_2021_07_29-18.11.30.152-CDT.png",
+    "license": "Public domain",
+    "author": "United States Forest Service"
+  },
+  {
+    "file": "scene/flood-debris-main-street-downtown-montpelier-vt-july-2023.jpg",
+    "debris_flow": false,
+    "expect": {
+      "debris_kinds": [
+        "building_materials"
+      ]
+    },
+    "note": "Debris from flooded buildings piled on a street after the flood; no water in view.",
+    "source": "https://commons.wikimedia.org/wiki/File:Flood_debris_Main_Street_downtown_Montpelier_VT_July_2023.jpg",
+    "license": "CC BY-SA 4.0",
+    "author": "Artaxerxes"
+  },
+  {
+    "file": "scene/elsalvadorslide.jpg",
+    "debris_flow": false,
+    "expect": {
+      "structures": "damaged_or_destroyed"
+    },
+    "note": "Landslide over houses (Las Colinas, El Salvador, 2001).",
+    "source": "https://commons.wikimedia.org/wiki/File:ElSalvadorslide.jpg",
+    "license": "Public domain",
+    "author": "USGS"
+  },
+  {
+    "file": "bright-angel-flash-flood.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "Flash flood: brown, fast water in a canyon creek.",
+    "source": "data/manifest.json",
+    "license": "Public domain",
+    "author": "Grand Canyon National Park"
+  },
+  {
+    "file": "oak-creek-flash-flood.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "Flash flood: muddy water.",
+    "source": "data/manifest.json",
+    "license": "Public domain",
+    "author": "ZionNPS"
+  },
+  {
+    "file": "usgs/OK_North_Canadian_River_near_El_Reno/OK_North_Canadian_River_near_El_Reno___2026-10-15T18-00-04Z.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "River flood at its peak (15.0 ft), USGS webcam.",
+    "source": "https://apps.usgs.gov/hivis/camera/OK_North_Canadian_River_near_El_Reno",
+    "license": "Public domain",
+    "author": "U.S. Geological Survey"
+  },
+  {
+    "file": "usgs/OK_North_Canadian_River_near_El_Reno/OK_North_Canadian_River_near_El_Reno___2026-10-13T21-00-03Z.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "Same river at a normal level (3.0 ft).",
+    "source": "https://apps.usgs.gov/hivis/camera/OK_North_Canadian_River_near_El_Reno",
+    "license": "Public domain",
+    "author": "U.S. Geological Survey"
+  },
+  {
+    "file": "marinilla-quebrada.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "A calm mountain stream in Marinilla, Antioquia.",
+    "source": "data/manifest.json",
+    "license": "CC BY-SA 4.0",
+    "author": "Daniel Di Palma"
+  },
+  {
+    "file": "scene/mandakini-river-damaging-houses-in-kedarnath-valley.jpg",
+    "debris_flow": true,
+    "expect": {
+      "structures": "at_risk|damaged_or_destroyed"
+    },
+    "note": "Thick, mud-laden torrent striking houses (Uttarakhand, India, 2013).",
+    "source": "https://commons.wikimedia.org/wiki/File:Mandakini-river-damaging-houses-in-kedarnath-valley.jpg",
+    "license": "CC BY-SA 4.0",
+    "author": "FiertlA"
+  },
+  {
+    "file": "scene/debris-flows-through-bright-angel-creek-55504603393-.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "Titled a debris flow, but the frame shows a muddy stream over a few rocks: a hard case for false alarms.",
+    "source": "https://commons.wikimedia.org/wiki/File:Debris_Flows_Through_Bright_Angel_Creek_(55504603393).jpg",
+    "license": "Public domain",
+    "author": "Grand Canyon NPS"
+  },
+  {
+    "file": "scene/armero-aftermath-usgs.jpg",
+    "debris_flow": false,
+    "expect": {
+      "structures": "damaged_or_destroyed"
+    },
+    "note": "Armero, Colombia, after the 1985 Nevado del Ruiz lahar.",
+    "source": "https://commons.wikimedia.org/wiki/File:Armero_aftermath_USGS.jpg",
+    "license": "Public domain",
+    "author": "Jeffrey Marso, USGS geologist"
+  },
+  {
+    "file": "scene/mariana-dam-disaster--.jpg",
+    "debris_flow": false,
+    "expect": {
+      "structures": "damaged_or_destroyed"
+    },
+    "note": "Village buried by the Fundão tailings mudflow (Mariana, Brazil, 2015).",
+    "source": "https://commons.wikimedia.org/wiki/File:Mariana_Dam_Disaster_-.jpg",
+    "license": "CC0",
+    "author": "WilliamRobertoMiranda"
+  }
+]

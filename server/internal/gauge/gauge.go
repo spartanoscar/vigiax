@@ -210,3 +210,48 @@ func Calibrate(ctx context.Context, c *meta.Client, model string, jpeg []byte) (
 	cal, err := Fit(labels, best.Box)
 	return cal, cost, err
 }
+
+// Placement is where SAM finds the gauge now, compared with the calibration.
+type Placement struct {
+	Moved   bool    `json:"moved"`
+	Found   bool    `json:"found"`
+	ShiftX  float64 `json:"shift_x_px"` // gauge centre now minus at calibration
+	ShiftY  float64 `json:"shift_y_px"` // gauge top now minus at calibration, when the top is known
+	CostUSD float64 `json:"cost_usd"`
+}
+
+// Check finds the gauge in a frame and tells whether the camera moved since the
+// calibration: a jump in the water level and a gauge that is no longer where it
+// was mean the camera, not the water, moved. A gauge that cannot be found counts
+// as moved (or covered): its readings are not trusted.
+func Check(ctx context.Context, c *meta.Client, jpeg []byte, cal *Calibration) (Placement, error) {
+	r, err := sam.Segment(ctx, c, jpeg, GaugePrompt)
+	if err != nil {
+		return Placement{}, err
+	}
+	p := Placement{CostUSD: r.CostUSD}
+	var best *sam.Object
+	for i := range r.Objects {
+		if best == nil || r.Objects[i].Confidence > best.Confidence {
+			best = &r.Objects[i]
+		}
+	}
+	if best == nil || best.Confidence < 0.4 {
+		p.Moved = true
+		return p, nil
+	}
+	p.Found = true
+	width := float64(cal.ColX2 - cal.ColX1)
+	p.ShiftX = float64(best.Box.X1+best.Box.X2)/2 - float64(cal.ColX1+cal.ColX2)/2
+	tol := math.Max(20, width*1.5)
+	if top, ok := cal.TopY(); ok {
+		p.ShiftY = float64(best.Box.Y1) - top
+		if math.Abs(p.ShiftY) > math.Max(25, cal.PxPerUnit*0.4) {
+			p.Moved = true
+		}
+	}
+	if math.Abs(p.ShiftX) > tol {
+		p.Moved = true
+	}
+	return p, nil
+}

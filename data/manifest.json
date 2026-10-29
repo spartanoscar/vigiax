@@ -55,6 +55,106 @@
       "kind": "webcam frames",
       "gage": "USGS 07239500 North Canadian River near El Reno, OK (gage height, parameter 00065)",
       "downloaded": "2026-10-27 via the NIMS API (server/cmd/evalusgs)"
+    },
+    {
+      "file": "data/raw/scene/bolam-creek---2021-07-29-18.13.46.762-cdt.jpg",
+      "title": "Debris flow in progress: muddy slurry running through a fresh boulder deposit (post-fire, Lava Fire, California). Hard case.",
+      "source": "https://commons.wikimedia.org/wiki/File:Bolam_Creek_-_2021_07_29-18.13.46.762-CDT.png",
+      "author": "United States Forest Service",
+      "license": "Public domain",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/hot-lahar-at-santiaguito.jpg",
+      "title": "Hot lahar (volcanic debris flow) moving down a channel, Santiaguito, Guatemala.",
+      "source": "https://commons.wikimedia.org/wiki/File:Hot_lahar_at_Santiaguito.jpg",
+      "author": "USGS geologist Jeff Marso",
+      "license": "Public domain",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/lahar-mount-st.-helens.jpg",
+      "title": "Lahar deposit after the flow, with a destroyed bridge: no flow in progress, damage must be seen.",
+      "source": "https://commons.wikimedia.org/wiki/File:Lahar,_Mount_St._Helens.jpg",
+      "author": "Dan Miller, U.S. Geological Survey",
+      "license": "Public domain",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/bolam-creek---2021-07-29-18.11.30.152-cdt.jpg",
+      "title": "Boulder deposit left by the same debris flow, no flow in view: not a flow in progress, but the debris must be seen.",
+      "source": "https://commons.wikimedia.org/wiki/File:Bolam_Creek_-_2021_07_29-18.11.30.152-CDT.png",
+      "author": "United States Forest Service",
+      "license": "Public domain",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/flood-debris-main-street-downtown-montpelier-vt-july-2023.jpg",
+      "title": "Debris from flooded buildings piled on a street after the flood; no water in view.",
+      "source": "https://commons.wikimedia.org/wiki/File:Flood_debris_Main_Street_downtown_Montpelier_VT_July_2023.jpg",
+      "author": "Artaxerxes",
+      "license": "CC BY-SA 4.0",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/elsalvadorslide.jpg",
+      "title": "Landslide over houses (Las Colinas, El Salvador, 2001).",
+      "source": "https://commons.wikimedia.org/wiki/File:ElSalvadorslide.jpg",
+      "author": "USGS",
+      "license": "Public domain",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/mandakini-river-damaging-houses-in-kedarnath-valley.jpg",
+      "title": "Thick, mud-laden torrent striking houses (Uttarakhand, India, 2013).",
+      "source": "https://commons.wikimedia.org/wiki/File:Mandakini-river-damaging-houses-in-kedarnath-valley.jpg",
+      "author": "FiertlA",
+      "license": "CC BY-SA 4.0",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/debris-flows-through-bright-angel-creek-55504603393-.jpg",
+      "title": "Titled a debris flow, but the frame shows a muddy stream over a few rocks: a hard case for false alarms.",
+      "source": "https://commons.wikimedia.org/wiki/File:Debris_Flows_Through_Bright_Angel_Creek_(55504603393).jpg",
+      "author": "Grand Canyon NPS",
+      "license": "Public domain",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/armero-aftermath-usgs.jpg",
+      "title": "Armero, Colombia, after the 1985 Nevado del Ruiz lahar.",
+      "source": "https://commons.wikimedia.org/wiki/File:Armero_aftermath_USGS.jpg",
+      "author": "Jeffrey Marso, USGS geologist",
+      "license": "Public domain",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
+    },
+    {
+      "file": "data/raw/scene/mariana-dam-disaster--.jpg",
+      "title": "Village buried by the Fundão tailings mudflow (Mariana, Brazil, 2015).",
+      "source": "https://commons.wikimedia.org/wiki/File:Mariana_Dam_Disaster_-.jpg",
+      "author": "WilliamRobertoMiranda",
+      "license": "CC0",
+      "kind": "photo",
+      "used_in": "eval/scene (Muse Spark scene reading)",
+      "downloaded": "2026-10-29 (Wikimedia Commons, up to 1280 px wide)"
     }
   ]
 }

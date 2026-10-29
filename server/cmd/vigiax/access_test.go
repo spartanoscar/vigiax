@@ -17,7 +17,7 @@ func testServer(t *testing.T) *server {
 	return &server{dir: dir, hub: newHub(), access: newAccess("admin-code", "judge-code"),
 		budget: loadBudget(dir+"/b.json", 3, 0.5), live: loadBudget(dir+"/l.json", 0.5, 0.5),
 		stations: map[string]*station.Station{}, lastAt: map[string]time.Time{}, alertState: map[string]*stationAlerts{},
-		agentState: map[string]*agentRuns{}, frames: map[string]frame{}}
+		agentState: map[string]*agentRuns{}, frames: map[string]frame{}, moved: map[string]string{}}
 }
 
 func signIn(t *testing.T, s *server, code string) (*http.Cookie, int) {
@@ -110,5 +110,22 @@ func TestNewTwinIDLooksLikeTheDashboards(t *testing.T) {
 	id := newTwinID()
 	if stationIn("ALERTS "+id) != id || len(id) != 11 {
 		t.Fatalf("new id %q is not recognised as a station code", id)
+	}
+}
+
+func TestLoadStationsSkipsTheirOtherFiles(t *testing.T) {
+	s := testServer(t)
+	st, _ := s.station("twin-abc123")
+	st.Update(func(c *station.Config) {})
+	if err := st.SetReference([]byte("jpeg"), station.Reference{T: time.Now(), By: "auto"}); err != nil {
+		t.Fatal(err)
+	}
+	s2 := testServer(t)
+	s2.dir = s.dir
+	if err := s2.loadStations(); err != nil {
+		t.Fatalf("a reference file stopped the service from starting: %v", err)
+	}
+	if _, ok := s2.stations["twin-abc123"]; !ok || len(s2.stations) != 1 {
+		t.Fatalf("stations loaded: %v", s2.stations)
 	}
 }

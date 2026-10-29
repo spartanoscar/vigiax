@@ -73,7 +73,11 @@ type Config struct {
 	RiseWindowMin float64 `json:"rise_window_minutes"` // window of the rise rate
 	LowerAfterMin float64 `json:"lower_after_minutes"` // minutes below a line before lowering
 	Rules         Rules   `json:"rules"`
-	Note          string  `json:"note,omitempty"` // where the numbers come from
+	// DropCmPerMin raises the alert when the water FALLS this fast: a stream
+	// that drops suddenly, often while it rains, can be dammed upstream by
+	// debris, and the dam's release is the debris flow. Nil turns it off.
+	DropCmPerMin *float64 `json:"drop_cm_per_min,omitempty"`
+	Note         string   `json:"note,omitempty"` // where the numbers come from
 }
 
 func (c *Config) rule(l Level) *Rule {
@@ -100,6 +104,9 @@ func (c *Config) Validate() error {
 	}
 	if c.RiseWindowMin < 1 || c.RiseWindowMin > 360 {
 		return errors.New("rise_window_minutes must be 1-360")
+	}
+	if c.DropCmPerMin != nil && (*c.DropCmPerMin <= 0 || *c.DropCmPerMin > 500) {
+		return errors.New("drop_cm_per_min must be 0-500")
 	}
 	if c.LowerAfterMin < 0 || c.LowerAfterMin > 720 {
 		return errors.New("lower_after_minutes must be 0-720")
@@ -148,12 +155,14 @@ type Obs struct {
 	RiseCmPerMin *float64 // over the rise window; nil when unknown
 	Blind        bool     // the camera cannot see the water
 	JumpCm       *float64 // set when the level jumped between two close frames
+	Moved        bool     // the gauge is not where it was calibrated: the camera moved
+	MovedWhy     string
 }
 
 // Event is a change of level, or a blind camera while the level is raised.
 type Event struct {
 	T            time.Time `json:"t"`
-	Kind         string    `json:"kind"` // raise, lower, false_alarm, blind, jump
+	Kind         string    `json:"kind"` // raise, lower, false_alarm, blind, jump, moved
 	From         Level     `json:"from"`
 	To           Level     `json:"to"`
 	Reason       string    `json:"reason"`
@@ -167,6 +176,7 @@ type State struct {
 	Level Level     `json:"level"`
 	Since time.Time `json:"since"`
 	Blind bool      `json:"blind"`
+	Moved bool      `json:"camera_moved"`
 
 	upN        int       // readings in a row above the current level
 	upTo       Level     // lowest level seen in that run
@@ -192,6 +202,15 @@ func target(c *Config, o Obs) (Level, string) {
 	return Normal, "below every enabled line and rate"
 }
 
+// targetWithDrop adds the damming rule to target: a sudden fall raises to Alert.
+func targetWithDrop(c *Config, o Obs) (Level, string) {
+	t, why := target(c, o)
+	if c.DropCmPerMin != nil && o.RiseCmPerMin != nil && -*o.RiseCmPerMin >= *c.DropCmPerMin && t < Alert && c.Rules.Alert.Enabled {
+		return Alert, fmt.Sprintf("falling %.1f cm/min, at or above the drop rate (%.1f cm/min): possible damming upstream", -*o.RiseCmPerMin, *c.DropCmPerMin)
+	}
+	return t, why
+}
+
 // Step applies one reading and returns the event it causes, if any.
 func (s *State) Step(c *Config, o Obs) *Event {
 	ev := func(kind string, to Level, why string) *Event {
@@ -213,6 +232,16 @@ func (s *State) Step(c *Config, o Obs) *Event {
 		s.upN, s.belowSince = 0, time.Time{}
 		return ev("jump", s.Level, fmt.Sprintf("the level jumped %+.0f cm between two frames: the camera may have moved, or a flood front arrived", *o.JumpCm))
 	}
+	if o.Moved {
+		// Like a blind camera: nothing it reads now is about the water. The
+		// level is kept until it is put back or recalibrated.
+		if !s.Moved {
+			s.Moved = true
+			return ev("moved", s.Level, o.MovedWhy)
+		}
+		return nil
+	}
+	s.Moved = false
 	if o.Blind || (o.LevelCm == nil && o.RiseCmPerMin == nil) {
 		// Nothing measured: keep the level and the runs as they are.
 		if !s.Blind {
@@ -224,7 +253,7 @@ func (s *State) Step(c *Config, o Obs) *Event {
 		return nil
 	}
 	s.Blind = false
-	t, why := target(c, o)
+	t, why := targetWithDrop(c, o)
 	if t == s.quietAt && o.T.Before(s.quietUntil) {
 		t = s.Level // a person said this was a false alarm: wait before raising to it again
 	}
@@ -301,7 +330,8 @@ func ptr(v float64) *float64 { return &v }
 func TwinDefaults() Config {
 	return Config{
 		Place: "la quebrada del gemelo digital", PlaceEn: "the digital twin's stream", Confirm: 3, RiseWindowMin: 5, LowerAfterMin: 2,
-		Note: "Demo values for the twin. In the field the community sets the lines with the installer.",
+		DropCmPerMin: ptr(1.5),
+		Note:         "Demo values for the twin. In the field the community sets the lines with the installer.",
 		Rules: Rules{
 			Attention: Rule{Enabled: true, LevelCm: ptr(100), RiseCmPerMin: ptr(1), Audience: "leader", Channels: []string{"whatsapp", "push"},
 				Why:    "The water starts to grow: someone should look at the stream.",
