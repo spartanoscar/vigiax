@@ -94,6 +94,7 @@ type Station struct {
 	cfg      Config
 	readings []Reading
 	dir      string
+	view     *View // what SAM saw on the last frame
 }
 
 var validID = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
@@ -181,6 +182,7 @@ func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte,
 	// "flood water" found nothing where "mud" found the flow, and the twin's
 	// slurry answers to "mudslide". Asked in turn only when nothing was found yet,
 	// so they cost one or two more images on those frames.
+	prompt := cfg.Prompt
 	for _, p := range MudPrompts {
 		if best(r) >= MinConfidence || cfg.Prompt == p {
 			break
@@ -192,9 +194,10 @@ func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte,
 		rd.SamMs += m.Latency.Milliseconds()
 		rd.CostUSD += m.CostUSD
 		if best(m) >= MinConfidence {
-			r, rd.Mud = m, true
+			r, rd.Mud, prompt = m, true, p
 		}
 	}
+	s.keepView(rd.T, prompt, jpeg, r)
 	if r.FrameW > 0 {
 		area := 0.0
 		for i := range r.Objects {

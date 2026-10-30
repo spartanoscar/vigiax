@@ -20,6 +20,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -115,6 +116,7 @@ func main() {
 	mux.HandleFunc("GET /api/stations", s.getStations)
 	mux.HandleFunc("GET /api/stations/{id}", s.getStation)
 	mux.HandleFunc("GET /api/stations/{id}/readings", s.getReadings)
+	mux.HandleFunc("GET /api/stations/{id}/sam", s.getSAM)
 	mux.HandleFunc("GET /api/events", s.hub.serve)
 	mux.HandleFunc("/api/access", s.handleAccess)
 	mux.HandleFunc("/api/stations/{id}/alerts", s.handleAlerts)
@@ -322,6 +324,29 @@ func (s *server) getStation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, summarize(st, time.Now()))
+}
+
+// getSAM is the "SAM view" layer of the dashboard: the last measured frame,
+// the mask SAM drew on it and the reading it gave, all from the same frame.
+func (s *server) getSAM(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	st, ok := s.stations[r.PathValue("id")]
+	s.mu.Unlock()
+	if !ok {
+		httpError(w, http.StatusNotFound, errors.New("no such station"))
+		return
+	}
+	v := st.LastView()
+	if v == nil {
+		httpError(w, http.StatusNotFound, errors.New("SAM has not measured a frame of this station yet"))
+		return
+	}
+	writeJSON(w, map[string]any{
+		"view":    v,
+		"frame":   "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(v.Frame),
+		"mask":    "data:image/png;base64," + base64.StdEncoding.EncodeToString(v.Mask),
+		"station": summarize(st, time.Now()),
+	})
 }
 
 func (s *server) getReadings(w http.ResponseWriter, r *http.Request) {

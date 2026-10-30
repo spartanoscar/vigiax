@@ -1,0 +1,64 @@
+/* SAM view: a layer over the twin showing the last measured frame, the mask
+   SAM 3.1 drew on it, and the gauge columns and waterline it read. */
+
+.layer-pill { height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px 0 12px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; transition: border-color 0.15s, background 0.15s; }
+.layer-pill svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.layer-pill:hover { border-color: rgba(56, 198, 244, 0.55); }
+.layer-pill[aria-pressed="true"] { background: rgba(0, 190, 255, 0.22); border-color: rgba(0, 190, 255, 0.7); }
+
+.sam-view { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 72px 16px 16px; background: rgba(4, 8, 16, 0.55); animation: rise-in 0.2s ease both; }
+.sam-card { width: min(980px, 100%); max-height: 100%; overflow-y: auto; scrollbar-width: none; padding: 16px; border-radius: 24px; display: grid; gap: 14px; }
+.sam-card.glass { background: rgba(8, 13, 25, 0.96); }
+.sam-head { display: flex; align-items: center; gap: 14px; }
+.sam-head > div:first-child { margin-right: auto; }
+.sam-kicker { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #00beff; }
+.sam-head h2 { margin: 0; font: 700 22px/1.15 var(--display); letter-spacing: -0.01em; }
+.sam-stations { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); }
+.sam-stations button { border: 0; background: none; padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.sam-stations [aria-selected="true"] { background: rgba(56, 198, 244, 0.18); color: var(--fg); }
+
+/* The stage: photo, mask and lines stacked at the frame's own aspect. */
+.sam-stage { --mask: 0.55; position: relative; border-radius: 16px; overflow: hidden; background: #000 repeating-conic-gradient(#0d1424 0 25%, #0a101c 0 50%) 0 0 / 24px 24px; }
+.sam-stage img, .sam-stage canvas { display: block; width: 100%; height: auto; }
+.sam-stage #sam-mask, .sam-stage canvas { position: absolute; inset: 0; height: 100%; }
+#sam-mask { opacity: var(--mask); mix-blend-mode: screen; transition: opacity 0.15s; }
+.sam-stage.no-photo #sam-frame { visibility: hidden; }
+.sam-stage.no-mask #sam-mask, .sam-stage.no-lines canvas { visibility: hidden; }
+.sam-stage.empty { aspect-ratio: 16 / 9; }
+.sam-stage.empty img, .sam-stage.empty canvas { display: none; }
+.sam-time { position: absolute; left: 10px; top: 10px; padding: 5px 9px; border-radius: 999px; font: 600 12px/1 var(--sans); background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); }
+.sam-time:empty { display: none; }
+.sam-empty { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* Layer switches, like a map's. */
+.sam-layers { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.layer-chip { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.layer-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.layer-chip::before { content: ""; width: 12px; height: 12px; border-radius: 4px; border: 2px solid currentColor; }
+.layer-chip:has(input:checked) { color: var(--fg); border-color: rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.08); }
+.layer-chip:has(input:checked)::before { background: currentColor; }
+.layer-chip.mask:has(input:checked)::before { background: #00beff; border-color: #00beff; }
+.layer-chip.lines:has(input:checked)::before { background: #ffd23f; border-color: #ffd23f; }
+.layer-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sam-opacity { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.sam-opacity input { width: 140px; background: linear-gradient(90deg, #00beff var(--fill, 0%), rgba(255, 255, 255, 0.14) var(--fill, 0%)); }
+
+.sam-stats { margin: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.sam-stats > div { padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); min-width: 0; }
+.sam-stats dt { font-size: 11px; font-weight: 600; color: var(--muted); }
+.sam-stats dd { margin: 4px 0 0; font: 700 17px/1.2 var(--display); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sam-level { color: #ffd23f; }
+.sam-hint { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .layer-pill { padding: 0 11px; }
+  .layer-pill span { display: none; }
+  .sam-view { padding: 60px 8px 8px; place-items: start center; }
+  .sam-card { padding: 12px; border-radius: 18px; }
+  .sam-head { flex-wrap: wrap; }
+  .sam-stations { order: 3; width: 100%; }
+  .sam-stations button { flex: 1; padding: 7px 8px; }
+  .sam-opacity { margin-left: 0; }
+  .sam-stats { grid-template-columns: repeat(2, 1fr); }
+  .sam-stats > div:first-child { grid-column: 1 / -1; }
+}
