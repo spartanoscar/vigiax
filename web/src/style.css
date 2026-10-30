@@ -158,14 +158,11 @@ body.node-on .go {
   --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3C/svg%3E");
   background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.16); box-shadow: none;
 }
-.surge-group { display: flex; align-items: center; border-radius: 999px; background: rgba(255, 77, 79, 0.12); border: 1px solid rgba(255, 77, 79, 0.35); padding: 0 4px 0 0; }
 .flood {
   --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2v3c-2.5 0-2.5-2-5-2s-2.5 2-5 2-2.5-2-5-2-2.5 2-5 2zM12 2l4.5 7h-3v3h-3V9h-3z'/%3E%3C/svg%3E");
   color: #fff; background: linear-gradient(180deg, #ff6b6c, #e5383b); box-shadow: 0 8px 24px rgba(229, 56, 59, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3); margin: -1px;
 }
 body.surging .flood { animation: glow 1.4s ease-in-out infinite; }
-.surge-when select { appearance: none; -webkit-appearance: none; border: 0; background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffb3b4' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") right 8px center / 14px no-repeat; color: #ffd0d0; font-weight: 600; font-size: 13px; padding: 0 28px 0 12px; height: 46px; cursor: pointer; border-radius: 999px; }
-.surge-when select option { color: #111; }
 .icon { width: 48px; padding: 0; justify-content: center; background: rgba(255, 255, 255, 0.06); border-color: var(--line); }
 .icon::before { display: none; }
 .icon svg, .close svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
@@ -250,6 +247,10 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 
 /* ─── Tuning: tabs for the stream, the scene and the camera ─── */
 .tuning { max-height: calc(100vh - 120px); overflow-y: auto; scrollbar-width: none; gap: 14px; }
+/* The settings sit over the stream and the sign-up card: solid enough to read,
+   and the card steps aside while they are open. */
+.tuning.glass { background: rgba(8, 13, 25, 0.97); }
+body.tuning-open .wa-card { display: none; }
 .tuning.glass { background: rgba(8, 13, 25, 0.94); }
 .tune-tabs { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); }
 .tune-tabs button { flex: 1; height: 32px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; }

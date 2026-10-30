@@ -158,17 +158,7 @@
     <!-- The three things a visitor does -->
     <nav class="dock glass" aria-label="Twin controls">
       <button id="send" class="dock-btn go" type="button">Start camera node</button>
-      <div class="surge-group">
-        <button id="surge" class="dock-btn flood" type="button">Flash flood</button>
-        <label class="surge-when">
-          <span class="sr-only">Peak arrives</span>
-          <select id="surge-min" aria-label="Peak arrives in">
-            <option value="2">in 2 min</option>
-            <option value="5" selected>in 5 min</option>
-            <option value="10">in 10 min</option>
-          </select>
-        </label>
-      </div>
+      <button id="surge" class="dock-btn flood" type="button">Flash flood</button>
       <button id="tune" class="dock-btn icon" type="button" aria-expanded="false" aria-controls="tuning" title="Adjust the stream">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" /><circle cx="15" cy="6" r="2" /><circle cx="9" cy="12" r="2" /><circle cx="17" cy="18" r="2" /></svg>
         <span class="sr-only">Adjust the stream</span>
@@ -190,6 +180,21 @@
       </div>
 
       <div class="tune-pane" data-pane="stream" role="tabpanel">
+        <div class="field">
+          <span class="field-k" id="surge-k">Flash flood: the peak arrives in</span>
+          <div class="seg-pick" role="radiogroup" aria-labelledby="surge-k" data-for="surge-min">
+            <button type="button" role="radio" data-v="1" aria-checked="true">1 min</button>
+            <button type="button" role="radio" data-v="2" aria-checked="false">2 min</button>
+            <button type="button" role="radio" data-v="5" aria-checked="false">5 min</button>
+            <button type="button" role="radio" data-v="10" aria-checked="false">10 min</button>
+          </div>
+          <select id="surge-min" class="sr-only" tabindex="-1" aria-hidden="true">
+            <option value="1" selected>1 min</option>
+            <option value="2">2 min</option>
+            <option value="5">5 min</option>
+            <option value="10">10 min</option>
+          </select>
+        </div>
         <div class="field">
           <label for="level">Water level <output id="level-out"></output></label>
           <input type="range" id="level" min="0.2" max="3.6" step="0.01" value="0.45" />

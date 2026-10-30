@@ -56,6 +56,7 @@ const tune = $<HTMLButtonElement>("tune");
 const tuning = $("tuning");
 function setTuning(open: boolean) {
   tuning.hidden = !open;
+  document.body.classList.toggle("tuning-open", open); // the sign-up card steps aside
   tune.setAttribute("aria-expanded", String(open));
 }
 tune.addEventListener("click", () => setTuning(tuning.hidden));
