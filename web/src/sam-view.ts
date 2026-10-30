@@ -3,6 +3,7 @@ import { events } from "./events";
 import { STATION } from "./station";
 import { GAUGE_HEIGHT } from "./world";
 import { FRAME_W, FRAME_H } from "./camera-node";
+import { link } from "./network";
 
 // The "SAM view", the twin's first view: the screen shows the camera node's
 // picture, with what SAM 3.1 finds on it drawn on top, like layers on a map: the
@@ -71,9 +72,30 @@ document.querySelectorAll<HTMLInputElement>("[data-layer]").forEach((c) =>
   c.addEventListener("change", () => document.body.classList.toggle(`no-${c.dataset.layer}`, !c.checked)),
 );
 
+// Without signal (or on LoRa) nothing reaches SAM 3.1: its masks would be the
+// last frame it saw, frozen while the water rises. They step aside, and the
+// node's own reading of the gauge is drawn instead.
+let nodeY: number | null = null, nodeCm: number | null = null;
+addEventListener("net-change", () => {
+  if (link.online) {
+    nodeY = nodeCm = null;
+    if (active && gpu === "ready") pump();
+    loadTwin();
+  }
+  drawLines();
+  stats();
+});
+
 // main.ts asks whether to draw the camera's picture instead of the 3D view, and
 // hands each frame over as it renders it.
 export const samView = {
+  // local: the waterline the node read by itself, while it has no signal.
+  local(y?: number, cm?: number) {
+    nodeY = y ?? null;
+    nodeCm = cm ?? null;
+    drawLines();
+    stats();
+  },
   get open() {
     return active;
   },
@@ -153,7 +175,7 @@ async function checkGPU() {
   showGPU();
   stats();
   if (gpu === "ready") {
-    if (active) pump();
+    if (active && link.online) pump();
     if (was !== "ready") segmentRiver();
   } else if (was === "ready") {
     loadTwin();
@@ -233,7 +255,7 @@ async function pump() {
   small.height = 360;
   const g = small.getContext("2d")!;
   try {
-    while (active && gpu === "ready") {
+    while (active && gpu === "ready" && link.online) {
       if (document.hidden) {
         await sleep(1000);
         continue;
@@ -415,6 +437,28 @@ function drawLines() {
   g.strokeRect(c.col_x1 - 6, top, c.col_x2 - c.col_x1 + 12, bottom - top);
   g.setLineDash([]);
   const x0 = c.col_x1 - 70, x1 = c.col_x2 + 40;
+  if (!link.online) {
+    // The node's own reading, in its colour, with where it comes from.
+    if (nodeY == null) return;
+    g.strokeStyle = "#ffb020";
+    g.lineWidth = 4;
+    g.beginPath();
+    g.moveTo(x0, nodeY);
+    g.lineTo(x1, nodeY);
+    g.stroke();
+    const label = `${Math.round(nodeCm ?? 0)} cm · on the node`;
+    g.font = "700 17px Inter, system-ui, sans-serif";
+    const tw = g.measureText(label).width + 16;
+    // On the gauge's left: the camera card covers the right of the picture.
+    const lx = x0 - tw - 8;
+    g.fillStyle = "#ffb020";
+    g.beginPath();
+    g.roundRect(lx, nodeY - 14, tw, 28, 14);
+    g.fill();
+    g.fillStyle = "#111";
+    g.fillText(label, lx + 8, nodeY + 6);
+    return;
+  }
   if (liveY != null) {
     g.strokeStyle = "rgba(255,255,255,.9)";
     g.lineWidth = 2;
@@ -448,6 +492,16 @@ function drawLines() {
 
 // --- the numbers ------------------------------------------------------------------------
 function stats() {
+  if (!link.online) {
+    document.body.dataset.sam = "paused";
+    $("sam-engine").textContent = link.mode === "lora" ? "paused · LoRa carries numbers only" : "paused · no signal";
+    $("sam-live-level").textContent = nodeCm != null ? `${Math.round(nodeCm)} cm (node)` : "–";
+    $("sam-found").textContent = "–";
+    $("sam-speed").textContent = "–";
+    $("sam-note").textContent =
+      "No picture reaches SAM 3.1 now, so its masks are hidden. The orange line is the node reading the gauge by itself, with what it learned from SAM 3.1 while it had signal.";
+    return;
+  }
   const live = gpu === "ready" && pumping;
   document.body.dataset.sam = live ? "live" : "measured";
   $("sam-engine").textContent = live ? `live · ${(stamps.length / 4).toFixed(1)} frames/s` : gpu === "off" || gpu === "error" ? "every 5 s" : "GPU starting…";

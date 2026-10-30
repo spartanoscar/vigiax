@@ -6,6 +6,7 @@ import { CameraNode, FRAME_W, FRAME_H } from "./camera-node";
 import { events } from "./events";
 import { STATION } from "./station";
 import { samView } from "./sam-view";
+import { link, LocalGauge, packet, bandOf, BPS_2G, LORA_EVERY_MS, type Local } from "./network";
 
 const FRAME_SECONDS = 5;
 const SESSION_MINUTES = 5; // the camera node stops by itself: a surge fits, an open tab costs little
@@ -156,7 +157,7 @@ knock.onclick = () => {
 };
 
 // --- camera node --------------------------------------------------------
-type Reading = { t: string; level_cm?: number; waterline_y?: number; coverage: number; confidence: number; sam_ms: number };
+type Reading = { t: string; level_cm?: number; waterline_y?: number; coverage: number; confidence: number; sam_ms: number; node?: boolean };
 type Summary = {
   id: string;
   calibration?: { source: string; px_per_unit: number; zero_y: number; unit: string; col_x1: number; col_x2: number };
@@ -170,6 +171,10 @@ let sessionEnds = 0;
 const truth: { t: number; cm: number }[] = []; // what the twin really had when each frame left
 const measured: { t: number; cm: number }[] = [];
 
+// What the node learned about its gauge while it had signal, to read it alone.
+const localGauge = new LocalGauge();
+let calib: Summary["calibration"];
+
 async function sendFrame() {
   // A hidden tab stops animating: its frames would show water that no longer
   // moves, and the station would measure (and pay for) a frozen stream.
@@ -177,19 +182,106 @@ async function sendFrame() {
     $("send-state").textContent = "Paused while the tab is hidden";
     return;
   }
-  const blob = await node.jpeg();
   truth.push({ t: Date.now(), cm: state.levelM * 100 });
-  $("send-state").textContent = "Sending frame…";
-  const res = await fetch(`/api/stations/${STATION}/frames`, { method: "POST", body: blob, headers: { "Content-Type": "image/jpeg" } });
+  if (!link.online) return measureOnNode();
+  // Signal back: what was kept goes first, so the history stays in order.
+  await forward();
+
+  // 4G: the whole picture. 2G: the gauge and what is around it.
+  const crop = link.mode === "2g" && calib ? cropOf(calib) : null;
+  const blob = crop ? await node.jpegCrop(crop) : await node.jpeg();
+  const band = localGauge.capture(node.output, calib);
+  let url = `/api/stations/${STATION}/frames`;
+  if (crop) {
+    url += `?crop=${crop.x},${crop.y},${FRAME_W},${FRAME_H}`;
+    $("send-state").textContent = `Sending the gauge over 2G (${(blob.size / 1024).toFixed(1)} KB)…`;
+    await sleep(((blob.size * 8) / BPS_2G) * 1000); // what the link takes to carry it
+  } else {
+    $("send-state").textContent = "Sending frame…";
+  }
+  const res = await fetch(url, { method: "POST", body: blob, headers: { "Content-Type": "image/jpeg" } });
   const body = await res.json();
   if (!res.ok) {
     if (res.status === 503) setSending(false, body.error); // out of budget: stop asking
     else $("send-state").textContent = body.error ?? `Error ${res.status}`;
     return;
   }
+  link.sent(blob.size);
   $("send-state").textContent = `Frame sent ${new Date().toLocaleTimeString("en-US")}`;
-  show(body as Summary);
+  const s = body as Summary;
+  if (band && s.last?.waterline_y != null && s.last.confidence >= 0.8) localGauge.learn(band, s.last.waterline_y);
+  show(s);
 }
+
+// measureOnNode: no signal, or LoRa. The node reads its own gauge, keeps or
+// radios the reading as a 10-byte packet, and sounds its siren by itself.
+async function measureOnNode() {
+  node.render();
+  feedCtx.drawImage(node.output, 0, 0);
+  const band = localGauge.capture(node.output, calib);
+  const r: Local = band && calib ? localGauge.read(band, calib) : { confidence: 0 };
+  link.local(r);
+  const p = packet(Date.now(), r, link.sirenOn);
+  showLocal(r);
+  if (link.mode === "lora" && Date.now() - link.lastLora >= LORA_EVERY_MS) {
+    link.lastLora = Date.now();
+    $("send-state").textContent = `Sent ${p.length} bytes over LoRa ${new Date().toLocaleTimeString("en-US")}`;
+    const res = await fetch(`/api/stations/${STATION}/node`, { method: "POST", body: new Blob([p as Uint8Array<ArrayBuffer>]), headers: { "Content-Type": "application/octet-stream" } }).catch(() => null);
+    if (res?.ok) {
+      link.sent(p.length);
+      show(((await res.json()) as { station: Summary }).station);
+    }
+    return;
+  }
+  if (link.mode === "off") {
+    link.queue.push(p);
+    $("send-state").textContent = `No signal · measured on the node ${new Date().toLocaleTimeString("en-US")}`;
+  } else {
+    $("send-state").textContent = `Measured on the node · next LoRa packet in ${Math.ceil((LORA_EVERY_MS - (Date.now() - link.lastLora)) / 1000)} s`;
+  }
+  link.show();
+}
+
+// forward sends what the node kept while it had no signal, all at once.
+async function forward() {
+  if (!link.queue.length) return;
+  const kept = link.queue.splice(0);
+  const body = new Uint8Array(kept.length * kept[0].length);
+  kept.forEach((p, i) => body.set(p, i * p.length));
+  const res = await fetch(`/api/stations/${STATION}/node`, { method: "POST", body: new Blob([body]), headers: { "Content-Type": "application/octet-stream" } }).catch(() => null);
+  if (!res?.ok) {
+    link.queue.unshift(...kept);
+    return;
+  }
+  link.sent(body.length);
+  const { added } = (await res.json()) as { added: number };
+  $("send-state").textContent = `Signal back: sent the ${kept.length} readings kept on the node (${body.length} bytes), ${added} new to the service`;
+}
+
+function showLocal(r: Local) {
+  $("measured-by").textContent = "Measured on the node";
+  $("measured-level").textContent = r.levelCm != null ? `${r.levelCm.toFixed(0)} cm` : localGauge.learned ? "cannot see" : "not learned yet";
+  if (r.levelCm != null) {
+    measured.push({ t: Date.now(), cm: r.levelCm });
+    drawOverlay(r.y, calib);
+  }
+  samView.local(r.y, r.levelCm);
+  drawChart();
+}
+
+// cropOf: the part of the picture a slow link carries, the gauge and a margin.
+function cropOf(c: NonNullable<Summary["calibration"]>) {
+  // Wide enough that SAM 3.1 sees a stream, not a strip of white: a narrow
+  // crop of the gauge alone does not look like water to it.
+  const b = bandOf(c, FRAME_H);
+  const x = Math.max(0, b.x0 - 360), y = Math.max(0, b.y0 - 40);
+  const r = { x, y, w: Math.min(FRAME_W, b.x1 + 200) - x, h: FRAME_H - y };
+  r.w -= r.w % 2;
+  r.h -= r.h % 2;
+  return r;
+}
+
+const sleep = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
 function setSending(on: boolean, note = "Camera node idle") {
   sending = on;
@@ -237,13 +329,15 @@ async function calibrateFromGeometry() {
 }
 
 function show(s: Summary) {
+  if (s.calibration) calib = s.calibration;
   if (s.calibration) {
     const c = s.calibration;
     $("calib-state").textContent = `Calibrated (${c.source === "labels" ? "gauge read by Muse Spark" : "twin geometry"}): ${c.px_per_unit.toFixed(1)} px per ${c.unit.toLowerCase()}`;
   }
   const r = s.last;
   if (!r) return;
-  $("sam-ms").textContent = `SAM ${r.sam_ms} ms`;
+  $("measured-by").textContent = r.node ? "Measured on the node" : "Measured by SAM 3.1";
+  $("sam-ms").textContent = r.node ? "on the node" : `SAM ${r.sam_ms} ms`;
   $("measured-level").textContent =
     r.level_cm != null ? `${r.level_cm.toFixed(0)} cm`
     : r.waterline_y != null ? "not calibrated"
@@ -271,6 +365,7 @@ fetch(`/api/stations/${STATION}`)
   .then((r) => (r.ok ? (r.json() as Promise<Summary>) : undefined))
   .then((s) => {
     if (s) show(s);
+    link.loadLines(STATION);
     // The twin knows its own geometry: refresh that calibration on every load
     // (free), but keep one read from the gauge by Muse Spark.
     if (s?.calibration?.source !== "labels") calibrateFromGeometry().catch(showError);

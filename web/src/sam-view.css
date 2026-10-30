@@ -22,6 +22,8 @@ body.sam-on #view { visibility: hidden; } /* keeps its size: the 3D view is size
 /* The same layers on the real river's photo, cropped like the photo. */
 .live-mask { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 body.no-water .layer-water, body.no-things .layer-things, body.no-lines .layer-lines { visibility: hidden; }
+/* No signal or LoRa: SAM's last masks would be frozen; only the gauge and the node's line stay. */
+body[data-sam="paused"] .sam-stage .layer-water, body[data-sam="paused"] .sam-stage .layer-things { visibility: hidden; }
 
 /* SAM's block in the camera node card: layers, numbers, the GPU. */
 .sam-box { display: grid; gap: 10px; padding-top: 2px; }

@@ -2,7 +2,8 @@
 // into a water level, and the dashboard follows the readings over SSE. Live
 // stations (usgs.go) are real webcams the service follows on its own.
 //
-//	POST /api/stations/{id}/frames       JPEG body → reading
+//	POST /api/stations/{id}/frames       JPEG body → reading (?crop=x,y,w,h: only part of the picture)
+//	POST /api/stations/{id}/node         readings the node measured itself, 10-byte packets (node.go)
 //	POST /api/stations/{id}/calibration  JPEG body (read the gauge) or JSON two-point calibration
 //	GET  /api/stations                   stations with their last reading and rise rates
 //	GET  /api/stations/{id}              one station
@@ -126,6 +127,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/stations/{id}/frames", s.postFrame)
+	mux.HandleFunc("POST /api/stations/{id}/node", s.postNode)
 	mux.HandleFunc("POST /api/stations/{id}/calibration", s.postCalibration)
 	mux.HandleFunc("GET /api/stations", s.getStations)
 	mux.HandleFunc("GET /api/stations/{id}", s.getStation)
@@ -216,6 +218,11 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 		httpError(w, http.StatusBadRequest, fmt.Errorf("send one JPEG frame of at most %d bytes", maxFrameBytes))
 		return
 	}
+	crop, err := parseCrop(r.URL.Query().Get("crop"))
+	if err != nil {
+		httpError(w, http.StatusBadRequest, err)
+		return
+	}
 	now := time.Now()
 	id := st.Config().ID
 	s.mu.Lock()
@@ -238,8 +245,12 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
-	s.keepFrame(id, img, now)
-	rd, err := st.Measure(ctx, s.meta, img, now)
+	if crop == nil {
+		// The scene the agent and the reference look at is the whole picture;
+		// a crop of the gauge is not one.
+		s.keepFrame(id, img, now)
+	}
+	rd, err := st.MeasureCrop(ctx, s.meta, img, station.Reading{T: now}, crop)
 	s.budget.spend(now, ip, rd.CostUSD)
 	if err != nil {
 		httpError(w, http.StatusBadGateway, err)
@@ -248,7 +259,9 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 	sum := summarize(st, now)
 	s.hub.publish("reading", sum)
 	s.checkAlerts(st, rd)
-	s.maybeReference(st, rd, img)
+	if crop == nil {
+		s.maybeReference(st, rd, img)
+	}
 	writeJSON(w, sum)
 }
 

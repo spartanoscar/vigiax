@@ -27,15 +27,16 @@ type View struct {
 
 var maskColor = color.NRGBA{0, 190, 255, 255}
 
-// maskPNG draws every object's mask on one w×h transparent image.
-func maskPNG(r *sam.Result, w, h int) ([]byte, error) {
+// maskPNG draws every object's mask on one w×h transparent image, moved by
+// (dx, dy): a crop's masks land where the crop sits in the whole picture.
+func maskPNG(r *sam.Result, w, h, dx, dy int) ([]byte, error) {
 	img := image.NewNRGBA(image.Rect(0, 0, w, h))
 	for i := range r.Objects {
 		o := &r.Objects[i]
-		for y := max(o.Box.Y1, 0); y <= min(o.Box.Y2, h-1); y++ {
-			for x := max(o.Box.X1, 0); x <= min(o.Box.X2, w-1); x++ {
+		for y := max(o.Box.Y1, -dy); y <= min(o.Box.Y2, h-1-dy); y++ {
+			for x := max(o.Box.X1, -dx); x <= min(o.Box.X2, w-1-dx); x++ {
 				if o.At(x, y) {
-					img.SetNRGBA(x, y, maskColor)
+					img.SetNRGBA(x+dx, y+dy, maskColor)
 				}
 			}
 		}
@@ -52,7 +53,7 @@ func maskPNG(r *sam.Result, w, h int) ([]byte, error) {
 // found nothing (a blind camera at night) is kept too, with an empty mask: the
 // view is always the last frame, matching the reading shown with it. Failing
 // to draw or save it never fails the measurement.
-func (s *Station) keepView(prompt string, jpeg []byte, r *sam.Result, rd Reading) {
+func (s *Station) keepView(prompt string, jpeg []byte, r *sam.Result, rd Reading, crop *Crop) {
 	w, h := r.FrameW, r.FrameH
 	if w == 0 {
 		c, _, err := image.DecodeConfig(bytes.NewReader(jpeg))
@@ -61,7 +62,11 @@ func (s *Station) keepView(prompt string, jpeg []byte, r *sam.Result, rd Reading
 		}
 		w, h = c.Width, c.Height
 	}
-	mask, err := maskPNG(r, w, h)
+	dx, dy := 0, 0
+	if crop != nil && crop.W > 0 && crop.H > 0 {
+		w, h, dx, dy = crop.W, crop.H, crop.X, crop.Y // the mask in the whole picture's place
+	}
+	mask, err := maskPNG(r, w, h, dx, dy)
 	if err != nil {
 		return
 	}

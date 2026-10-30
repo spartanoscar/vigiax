@@ -70,9 +70,23 @@
       </div>
       <p class="feed-state" id="send-state" aria-live="polite">Camera node idle</p>
 
+      <!-- How the node reaches the service, and what it does without signal -->
+      <section class="net" aria-label="Network">
+        <div class="net-modes" role="radiogroup" aria-label="Network at the camera node">
+          <button type="button" role="radio" data-net="4g" aria-checked="true">4G</button>
+          <button type="button" role="radio" data-net="2g" aria-checked="false">2G</button>
+          <button type="button" role="radio" data-net="off" aria-checked="false">No signal</button>
+          <button type="button" role="radio" data-net="lora" aria-checked="false">LoRa</button>
+        </div>
+        <p class="net-line" id="net-line"></p>
+        <p class="net-queue" id="net-queue" hidden></p>
+        <p class="net-total" id="net-total"></p>
+        <div id="siren" class="siren" role="alert" hidden><span class="siren-dot" aria-hidden="true"></span>Local siren sounding · the node raised it without the internet</div>
+      </section>
+
       <div class="readout">
         <div class="readout-main">
-          <span class="k">Measured by SAM 3.1</span>
+          <span class="k" id="measured-by">Measured by SAM 3.1</span>
           <span class="v" id="measured-level">–</span>
         </div>
         <div class="readout-side">

@@ -92,6 +92,17 @@ export class CameraNode {
     return new Promise((ok, fail) => this.output.toBlob((b) => (b ? ok(b) : fail(new Error("no frame"))), "image/jpeg", quality));
   }
 
+  // jpegCrop renders a frame and keeps only part of it: on a slow link the node
+  // sends the gauge and what is around it, not the whole view.
+  jpegCrop(r: { x: number; y: number; w: number; h: number }, quality = 0.6): Promise<Blob> {
+    this.render();
+    const c = document.createElement("canvas");
+    c.width = r.w;
+    c.height = r.h;
+    c.getContext("2d")!.drawImage(this.output, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+    return new Promise((ok, fail) => c.toBlob((b) => (b ? ok(b) : fail(new Error("no frame"))), "image/jpeg", quality));
+  }
+
   // Frame pixel of a world point, as the service sees it (y down), with the
   // camera where it was installed: the calibration is made once, at install.
   project(p: THREE.Vector3): { x: number; y: number } {

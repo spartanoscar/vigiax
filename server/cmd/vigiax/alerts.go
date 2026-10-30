@@ -179,6 +179,15 @@ func messages(c *alert.Config, e alert.Event) alertMessage {
 
 // checkAlerts runs the rules on a new reading and sends what changes.
 func (s *server) checkAlerts(st *station.Station, rd station.Reading) {
+	if e, c := s.stepAlerts(st, rd); e != nil {
+		s.announce(st.Config().ID, c, *e)
+	}
+}
+
+// stepAlerts applies one reading to the station's alert state and records the
+// event it causes, without announcing it: readings that arrive late (a node
+// back online) are stepped through, and only what holds now is announced.
+func (s *server) stepAlerts(st *station.Station, rd station.Reading) (*alert.Event, *alert.Config) {
 	cfg := st.Config()
 	c := alertConfig(cfg)
 	o := observe(st, &c, rd)
@@ -198,9 +207,7 @@ func (s *server) checkAlerts(st *station.Station, rd station.Reading) {
 		a.record(*e)
 	}
 	a.mu.Unlock()
-	if e != nil {
-		s.announce(cfg.ID, &c, *e)
-	}
+	return e, &c
 }
 
 // checkPlacement asks SAM where the gauge is after a jump: if it is not where

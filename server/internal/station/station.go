@@ -60,6 +60,7 @@ type Reading struct {
 	AtTop      bool      `json:"at_gauge_top,omitempty"`
 	Mud        bool      `json:"mud,omitempty"`       // measured on "mud": the flow is a slurry SAM does not call water // the water covers the whole gauge: the level is at least LevelCm
 	RefCm      *float64  `json:"ref_cm,omitempty"`    // official gage at the same time, when there is one
+	Node       bool      `json:"node,omitempty"`      // measured on the camera node itself (no signal or LoRa), not by SAM
 	FrameURL   string    `json:"frame_url,omitempty"` // public image of the frame, for remote cameras
 }
 
@@ -172,7 +173,26 @@ func (s *Station) Measure(ctx context.Context, c *meta.Client, jpeg []byte, now 
 // MeasureFrame segments one JPEG frame and appends the reading. rd carries the
 // capture time and anything known about the frame beforehand (RefCm, FrameURL).
 func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte, rd Reading) (Reading, error) {
+	return s.MeasureCrop(ctx, c, jpeg, rd, nil)
+}
+
+// Crop is where a frame that is only part of the camera's picture sits in it:
+// a node on a slow link sends the gauge and what is around it, not the whole
+// view. X, Y is its top-left corner; W, H the size of the whole picture.
+type Crop struct{ X, Y, W, H int }
+
+// MeasureCrop is MeasureFrame for a frame that is a crop of the picture (nil:
+// the whole picture). The calibration is moved onto the crop, and the reading
+// comes back in the whole picture's rows.
+func (s *Station) MeasureCrop(ctx context.Context, c *meta.Client, jpeg []byte, rd Reading, crop *Crop) (Reading, error) {
 	cfg := s.Config()
+	if crop != nil && cfg.Calib != nil {
+		cal := *cfg.Calib
+		cal.ColX1 -= crop.X
+		cal.ColX2 -= crop.X
+		cal.ZeroY -= float64(crop.Y)
+		cfg.Calib = &cal
+	}
 	r, err := sam.Segment(ctx, c, jpeg, cfg.Prompt)
 	if err != nil {
 		return Reading{}, err
@@ -227,8 +247,23 @@ func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte,
 	if rd.Confidence < MinConfidence {
 		rd.Blind, rd.LevelCm, rd.WaterlineY = true, nil, nil
 	}
-	s.keepView(prompt, jpeg, r, rd)
+	if crop != nil && rd.WaterlineY != nil {
+		y := *rd.WaterlineY + crop.Y
+		rd.WaterlineY = &y
+	}
+	s.keepView(prompt, jpeg, r, rd, crop)
 	return rd, s.append(rd)
+}
+
+// AddNode appends a reading the camera node measured itself, without SAM:
+// sent over LoRa, or kept while it had no signal and sent once back. Only a
+// reading newer than the last one is added; it reports whether it was.
+func (s *Station) AddNode(rd Reading) (bool, error) {
+	rd.T, rd.Node = rd.T.UTC(), true
+	if last, ok := s.Last(); ok && !rd.T.After(last.T) {
+		return false, nil
+	}
+	return true, s.append(rd)
 }
 
 // SetRef adds the official gage level to the reading taken at t, for gages

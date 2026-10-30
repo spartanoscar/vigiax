@@ -52,6 +52,21 @@ code { font-family: var(--mono); }
 .hud-link { padding: 10px 16px; border-radius: 999px; color: var(--fg); text-decoration: none; font-weight: 600; font-size: 13px; transition: border-color 0.15s; }
 .hud-link:hover { border-color: rgba(56, 198, 244, 0.55); }
 
+/* The node's link: 4G, 2G, no signal, LoRa; bytes sent; the local siren. */
+.net { display: grid; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); }
+.net-modes { display: flex; gap: 3px; padding: 3px; border-radius: 999px; background: rgba(0, 0, 0, 0.25); }
+.net-modes button { flex: 1; height: 28px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: 600 12px/1 var(--sans); cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+.net-modes button:hover { color: var(--fg); }
+.net-modes [aria-checked="true"] { background: #eaf6ff; color: #06101e; }
+body[data-net="off"] .net-modes [aria-checked="true"] { background: #ffb020; }
+body[data-net="lora"] .net-modes [aria-checked="true"] { background: #b98cff; }
+.net p { margin: 0; font-size: 12px; line-height: 1.4; }
+.net-line { font-weight: 600; }
+.net-queue { color: #ffd38a; }
+.net-total { color: var(--muted); font-variant-numeric: tabular-nums; }
+.siren { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 77, 79, 0.2); border: 1px solid rgba(255, 77, 79, 0.6); color: #ffd0d0; font-size: 12.5px; font-weight: 700; }
+.siren-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--flood); animation: pulse 0.9s ease-out infinite; }
+
 /* Three steps a visitor (a judge) follows; each lights up as it is done. */
 .steps { list-style: none; margin: 0; padding: 5px; border-radius: 999px; display: flex; align-items: center; gap: 2px; }
 .steps li { display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; border-radius: 999px; color: var(--muted); transition: background 0.2s, color 0.2s; }
