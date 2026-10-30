@@ -33,9 +33,10 @@ const step = (name: string, state: "now" | "done" | "", text?: string) => {
   if (text) li.querySelector(".step-t")!.textContent = text;
 };
 let flooded = false;
+let seen = false; // a frame went out since the camera started: "Sending frame…" in between does not undo it
 function syncSteps() {
   const on = document.body.classList.contains("node-on");
-  const seen = /^Frame sent/.test($("send-state").textContent ?? "");
+  seen = on && (seen || /^Frame sent/.test($("send-state").textContent ?? ""));
   step("watch", on && seen ? "done" : "now", on ? (seen ? "Camera watching" : "Starting the camera…") : "Start the camera");
   if (!document.body.classList.contains("surging")) step("flood", flooded ? "done" : on && seen ? "now" : "", flooded ? "Flash flood sent" : "Trigger a flash flood");
   step("phone", !$("wa-on").hidden ? "done" : flooded ? "now" : "", !$("wa-on").hidden ? "Alerts on your phone" : undefined);
