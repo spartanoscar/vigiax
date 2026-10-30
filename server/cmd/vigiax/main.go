@@ -341,11 +341,15 @@ func (s *server) getSAM(w http.ResponseWriter, r *http.Request) {
 		httpError(w, http.StatusNotFound, errors.New("SAM has not measured a frame of this station yet"))
 		return
 	}
+	// The numbers shown with the picture are the ones measured on it, not the
+	// station's latest reading, which may come from a newer frame.
+	sum := summarize(st, time.Now())
+	sum.Last = &v.Reading
 	writeJSON(w, map[string]any{
 		"view":    v,
 		"frame":   "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(v.Frame),
 		"mask":    "data:image/png;base64," + base64.StdEncoding.EncodeToString(v.Mask),
-		"station": summarize(st, time.Now()),
+		"station": sum,
 	})
 }
 

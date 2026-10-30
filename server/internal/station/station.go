@@ -197,7 +197,6 @@ func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte,
 			r, rd.Mud, prompt = m, true, p
 		}
 	}
-	s.keepView(rd.T, prompt, jpeg, r)
 	if r.FrameW > 0 {
 		area := 0.0
 		for i := range r.Objects {
@@ -228,6 +227,7 @@ func (s *Station) MeasureFrame(ctx context.Context, c *meta.Client, jpeg []byte,
 	if rd.Confidence < MinConfidence {
 		rd.Blind, rd.LevelCm, rd.WaterlineY = true, nil, nil
 	}
+	s.keepView(prompt, jpeg, r, rd)
 	return rd, s.append(rd)
 }
 
