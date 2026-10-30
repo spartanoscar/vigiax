@@ -35,15 +35,15 @@
           <span class="live-pill-v">–</span>
         </button>
       </div>
-      <div id="surge-banner" class="surge-banner glass" hidden role="status">
-        <span class="surge-pulse" aria-hidden="true"></span>
-        <span>Flash flood coming down</span>
-        <strong id="surge-count">5:00</strong>
-      </div>
+      <ol id="steps" class="steps glass" aria-label="Try it in three steps">
+        <li data-step="watch" data-state="now"><span class="step-n" aria-hidden="true">1</span><button type="button" class="step-t" id="step-watch">Starting the camera…</button></li>
+        <li data-step="flood"><span class="step-n" aria-hidden="true">2</span><button type="button" class="step-t" id="step-flood">Trigger a flash flood</button></li>
+        <li data-step="phone"><span class="step-n" aria-hidden="true">3</span><button type="button" class="step-t" id="step-phone">Get the alert on your phone</button></li>
+      </ol>
       <div class="hud-right">
-        <button id="sam-toggle" class="layer-pill glass" type="button" aria-pressed="false" aria-controls="sam-view" title="See what SAM 3.1 sees, live">
+        <button id="sam-toggle" class="layer-pill glass" type="button" aria-pressed="true" aria-controls="sam-view" title="Walk around the valley in 3D">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5z" /><path d="m2 12 10 5 10-5" /><path d="m2 16 10 5 10-5" /></svg>
-          <span>SAM view</span>
+          <span id="sam-toggle-t">3D view</span>
         </button>
         <span id="wa-on" class="wa-on glass" hidden title="A phone signed up for this station gets its alerts on WhatsApp"><i aria-hidden="true"></i>WhatsApp alerts on</span>
         <button id="alerts-toggle" class="alerts-pill glass" type="button" aria-expanded="false" aria-controls="alerts" title="Alerts">
@@ -81,6 +81,33 @@
         </div>
       </div>
 
+      <section class="sam-box" aria-label="What SAM 3.1 sees">
+        <p class="sam-kicker">SAM 3.1 · <span id="sam-engine">every 5 s</span></p>
+        <div class="sam-layers" role="group" aria-label="Layers">
+          <label class="layer-chip water"><input type="checkbox" data-layer="water" checked />Water</label>
+          <label class="layer-chip things"><input type="checkbox" data-layer="things" checked />People and logs</label>
+          <label class="layer-chip lines"><input type="checkbox" data-layer="lines" checked />Gauge</label>
+        </div>
+        <dl class="sam-stats">
+          <div><dt>Waterline now</dt><dd id="sam-live-level">–</dd></div>
+          <div><dt>In view</dt><dd id="sam-found">–</dd></div>
+          <div class="wide"><dt>Speed</dt><dd id="sam-speed">–</dd></div>
+        </dl>
+        <div class="sam-gpu" id="sam-gpu" data-stage="off">
+          <div class="sam-gpu-row">
+            <span class="sam-gpu-dot" aria-hidden="true"></span>
+            <span class="sam-gpu-text" id="sam-gpu-text" role="status">Live GPU off</span>
+            <button id="sam-gpu-btn" class="sam-gpu-btn" type="button" hidden>Turn on</button>
+          </div>
+          <form id="sam-gpu-unlock" class="sam-gpu-unlock" hidden>
+            <input id="sam-gpu-code" type="password" autocomplete="off" placeholder="Judge code" aria-label="Judge code" />
+            <button type="submit">Unlock</button>
+          </form>
+          <p class="sam-gpu-note" id="sam-gpu-note" hidden></p>
+        </div>
+        <p class="sam-note" id="sam-note"></p>
+      </section>
+
       <div class="chart-wrap">
         <canvas id="chart" height="160"></canvas>
         <div class="legend" aria-hidden="true">
@@ -105,6 +132,9 @@
       </div>
       <figure class="live-photo">
         <img id="live-photo" alt="Latest USGS webcam photo of the North Canadian River near El Reno, Oklahoma" width="720" height="405" />
+        <canvas id="live-water" class="live-mask layer-water" aria-hidden="true"></canvas>
+        <canvas id="live-things" class="live-mask layer-things" aria-hidden="true"></canvas>
+        <canvas id="live-tags" class="live-mask layer-things" aria-hidden="true"></canvas>
         <span class="live-time" id="live-time"></span>
         <span class="live-blind">Camera blind (night)</span>
       </figure>
@@ -335,7 +365,7 @@
     </aside>
 
     <!-- SAM view: the camera node's picture, with what SAM 3.1 finds on it drawn live on top -->
-    <section id="sam-view" class="sam-view" hidden aria-label="SAM view" data-engine="measured">
+    <section id="sam-view" class="sam-view" aria-label="SAM view" data-engine="measured">
       <!-- Smooths the masks at screen resolution: blur, then a sharp alpha cut
            (rounded, not pixelated, edges); a light fill and a thin edge on top. -->
       <svg class="sam-filters" aria-hidden="true">
@@ -367,65 +397,24 @@
         <canvas id="sam-lines" class="layer-lines" aria-hidden="true"></canvas>
       </div>
 
-      <div class="sam-hud glass">
-        <header class="sam-head">
-          <div>
-            <p class="sam-kicker">SAM 3.1 · <span id="sam-engine">Every 5 s</span></p>
-            <h2>What SAM sees</h2>
-          </div>
-          <button id="sam-close" class="close" type="button" aria-label="Close the SAM view">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-          </button>
-        </header>
-        <div class="sam-gpu" id="sam-gpu" data-stage="off">
-          <div class="sam-gpu-row">
-            <span class="sam-gpu-dot" aria-hidden="true"></span>
-            <span class="sam-gpu-text" id="sam-gpu-text" role="status">Live GPU off</span>
-            <button id="sam-gpu-btn" class="sam-gpu-btn" type="button" hidden>Turn on</button>
-          </div>
-          <form id="sam-gpu-unlock" class="sam-gpu-unlock" hidden>
-            <input id="sam-gpu-code" type="password" autocomplete="off" placeholder="Judge code" aria-label="Judge code" />
-            <button type="submit">Unlock</button>
-          </form>
-          <p class="sam-gpu-note" id="sam-gpu-note" hidden></p>
-        </div>
-        <div class="sam-stations" role="tablist" aria-label="Camera">
-          <button type="button" role="tab" data-sam-source="twin" aria-selected="true">Your twin</button>
-          <button type="button" role="tab" data-sam-source="river" aria-selected="false">Real river · El Reno</button>
-        </div>
-        <div class="sam-layers" role="group" aria-label="Layers">
-          <label class="layer-chip water"><input type="checkbox" data-layer="water" checked />Water</label>
-          <label class="layer-chip things"><input type="checkbox" data-layer="things" checked />People and logs</label>
-          <label class="layer-chip lines"><input type="checkbox" data-layer="lines" checked />Gauge</label>
-        </div>
-        <dl class="sam-stats">
-          <div><dt>Level, measured</dt><dd id="sam-level">–</dd></div>
-          <div><dt>Waterline now</dt><dd id="sam-live-level">–</dd></div>
-          <div class="wide"><dt>In view</dt><dd id="sam-found">–</dd></div>
-          <div class="wide"><dt>Speed</dt><dd id="sam-speed">–</dd></div>
-        </dl>
-        <p class="sam-note" id="sam-note"></p>
-      </div>
     </section>
 
     <!-- An alert as the dashboard shows it -->
     <div id="toasts" class="toasts" aria-live="assertive"></div>
 
-    <!-- First visit: one sentence, one button -->
-    <div id="intro" class="intro" hidden>
-      <div class="intro-card glass" role="dialog" aria-modal="true" aria-labelledby="intro-title">
-        <p class="intro-kicker">Vigiax · live twin</p>
-        <h1 id="intro-title">A mountain stream.<br /><span class="grad">Make it flood.</span></h1>
-        <p class="intro-lead">A camera on a pole watches the gauge. Every 5 seconds it sends a frame and SAM 3.1 measures the water.</p>
-        <ol class="intro-steps">
-          <li><span>1</span>Start the camera node</li>
-          <li><span>2</span>Trigger a flash flood</li>
-          <li><span>3</span>Watch the measurement follow the water</li>
-        </ol>
-        <button class="intro-go" type="button" data-start>Start the camera</button>
-        <button class="intro-skip" type="button" data-close>Look around first</button>
+    <!-- Step 3: the alert on the visitor's own phone -->
+    <aside id="wa-card" class="wa-card glass" hidden aria-labelledby="wa-card-title">
+      <a id="wa-card-qr" class="wa-card-qr" target="_blank" rel="noopener" aria-label="Open WhatsApp with the message ready"></a>
+      <div class="wa-card-body">
+        <h2 id="wa-card-title">Get these alerts on your phone</h2>
+        <p class="wa-card-how">Scan the code and send the message WhatsApp opens. Then trigger a flash flood.</p>
+        <a id="wa-card-link" class="wa-card-link" target="_blank" rel="noopener">Open WhatsApp</a>
+        <p class="wa-card-fine">Only you can sign your phone up. It ends after 24 hours.</p>
       </div>
-    </div>
+      <button id="wa-card-close" class="close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </aside>
 
     <script type="module" src="/src/twin-ui.ts"></script>
     <script type="module" src="/src/main.ts"></script>

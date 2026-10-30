@@ -196,6 +196,13 @@ func (s *server) gpuOn(ctx context.Context, now time.Time) {
 	g := s.gpuCtl
 	g.touch(now)
 	out, err := g.run(ctx, "up", "--no-wait")
+	if err != nil && gpuWhy(out) == gpuBusy {
+		// RunPod sometimes refuses one request and takes the next: a judge's
+		// first click should not be the one that fails.
+		log.Printf("gpu: up: %v %.300s; trying again", err, out)
+		time.Sleep(3 * time.Second)
+		out, err = g.run(ctx, "up", "--no-wait")
+	}
 	g.mu.Lock()
 	g.note = ""
 	if err != nil {
@@ -219,6 +226,8 @@ func gpuWhy(out string) string {
 	case strings.Contains(out, "otra máquina"):
 		return "The GPU is busy with another project right now. Try again in a few minutes."
 	default:
-		return "No GPU could be rented right now. Try again in a minute; the view keeps working with the Meta Model API."
+		return gpuBusy
 	}
 }
+
+const gpuBusy = "No GPU could be rented right now. Try again in a minute; the view keeps working with the Meta Model API."

@@ -129,16 +129,8 @@ function render(v: View) {
   const wa = $("wa");
   wa.hidden = !v.whatsapp;
   if (v.whatsapp) {
-    const code = `ALERTS ${v.station}`;
-    const link = `https://wa.me/${v.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(code)}`;
-    $("wa-code").textContent = code;
+    $("wa-code").textContent = waQR($<HTMLAnchorElement>("wa-qr"), v.whatsapp, v.station);
     $("wa-number").textContent = v.whatsapp;
-    const qr = qrcode(0, "M");
-    qr.addData(link);
-    qr.make();
-    const a = $<HTMLAnchorElement>("wa-qr");
-    a.href = link;
-    a.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 2, scalable: true });
     $("wa-subs").textContent = v.subscribers ? `${v.subscribers} phone${v.subscribers > 1 ? "s" : ""} signed up now.` : "";
   }
 
@@ -299,7 +291,10 @@ events.addEventListener("alert", (e) => {
 for (const name of ["alerts_config", "subscribed"]) {
   events.addEventListener(name, (e) => {
     const d = JSON.parse((e as MessageEvent).data);
-    if (name === "subscribed" && d.station === twin()) $("wa-on").hidden = false;
+    if (name === "subscribed" && d.station === twin()) {
+      $("wa-on").hidden = false;
+      waCard.hidden = true; // signed up: step 3 turns green instead
+    }
     if (!panel.hidden && d.station === stationId()) load();
   });
 }
@@ -359,6 +354,38 @@ function siren() {
   }
 }
 
+// waQR points a link (and the QR code inside it) at WhatsApp with the sign-up
+// message for a station ready to send, and returns that message.
+function waQR(a: HTMLAnchorElement, number: string, station: string) {
+  const code = `ALERTS ${station}`;
+  const link = `https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(code)}`;
+  const qr = qrcode(0, "M");
+  qr.addData(link);
+  qr.make();
+  a.href = link;
+  a.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 2, scalable: true });
+  return code;
+}
+
+// --- step 3: the card that signs the visitor's phone up -------------------------------
+// Shown from the start, above the dock; closed, it comes back from step 3.
+const waCard = $("wa-card");
+const CLOSED = "vigiax-wa-card";
+let waReady = false;
+function showWACard(v: View) {
+  if (!v.whatsapp) return;
+  waQR($<HTMLAnchorElement>("wa-card-qr"), v.whatsapp, v.station);
+  $<HTMLAnchorElement>("wa-card-link").href = $<HTMLAnchorElement>("wa-card-qr").href;
+  waReady = true;
+  const closed = (() => { try { return sessionStorage.getItem(CLOSED) === "1"; } catch { return false; } })();
+  waCard.hidden = closed || v.subscribers > 0;
+}
+$("wa-card-close").addEventListener("click", () => {
+  waCard.hidden = true;
+  try { sessionStorage.setItem(CLOSED, "1"); } catch { /* private mode */ }
+});
+waCard.addEventListener("open", () => (waCard.hidden = !waReady));
+
 // The level badge in the top bar, before the panel is ever opened, and
 // whether a phone already gets this twin's alerts on WhatsApp.
 fetch(`/api/stations/${twin()}/alerts`)
@@ -367,6 +394,7 @@ fetch(`/api/stations/${twin()}/alerts`)
     badge($("alert-level"), v.state.level);
     $("wa-on").hidden = !(v.subscribers > 0);
     $("moved").hidden = !v.state.camera_moved;
+    showWACard(v);
   })
   .catch(() => {});
 

@@ -106,13 +106,18 @@ func (c *Client) Health(ctx context.Context) Health {
 		return h
 	}
 	c.mu.Unlock()
-	h := Health{Stage: "off"}
+	// A linked GPU that does not answer yet is still starting; one that is gone
+	// is unlinked by whoever linked it.
+	h := Health{Stage: "starting"}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(l.URL, "/")+"/health", nil)
 	if res, err := c.http.Do(req); err == nil {
+		if res.StatusCode == http.StatusNotFound {
+			h = Health{Stage: "off"}
+		}
 		// Before the API starts, the GPU host answers with its own HTML page.
-		if res.StatusCode != http.StatusNotFound && (res.StatusCode != http.StatusOK || json.NewDecoder(res.Body).Decode(&h) != nil) {
+		if res.StatusCode == http.StatusOK && json.NewDecoder(res.Body).Decode(&h) != nil {
 			h = Health{Stage: "starting"}
 		}
 		res.Body.Close()

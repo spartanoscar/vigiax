@@ -1,6 +1,6 @@
-/* SAM view: the main view becomes the camera node's picture, with what SAM 3.1
-   finds drawn on top as switchable layers. The top bar and the dock stay above
-   it, so a flood can be triggered while watching the mask follow the water. */
+/* SAM view, the twin's first view: the screen is the camera node's picture, with
+   what SAM 3.1 finds drawn on top as switchable layers. The cards (the real river,
+   the camera node with SAM's numbers), the top bar and the dock stay above it. */
 
 .layer-pill { height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px 0 12px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; transition: border-color 0.15s, background 0.15s; }
 .layer-pill svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
@@ -9,27 +9,25 @@
 
 .sam-view { position: fixed; inset: 0; z-index: 3; background: #04070d; animation: fade-in 0.25s ease both; }
 @keyframes fade-in { from { opacity: 0; } }
-/* The 3D view and the side panels give way to the picture. */
-body.sam-on #view, body.sam-on .sensor, body.sam-on .live { visibility: hidden; }
+/* The 3D view gives way to the picture; the camera card's own small copy of
+   the picture is not needed while the whole screen shows it. */
+body.sam-on .orbit-hint, body.sam-on .feed-frame { display: none; }
+body.sam-on #view { visibility: hidden; } /* keeps its size: the 3D view is sized once, at load */
 
 /* The picture covers the screen at its own aspect; every layer is stacked on it
    at the frame's size, so a mask pixel sits on its picture pixel. */
 .sam-stage { --ar: 16 / 9; position: absolute; left: 50%; top: 50%; width: max(100vw, 100vh * (var(--ar))); aspect-ratio: var(--ar); transform: translate(-50%, -50%); }
 .sam-stage > * { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.sam-stage #sam-photo { display: none; object-fit: fill; }
-.sam-stage.river #sam-video { display: none; }
-.sam-stage.river #sam-photo { display: block; }
 .sam-filters { position: absolute; width: 0; height: 0; }
-.sam-stage.no-water .layer-water, .sam-stage.no-things .layer-things, .sam-stage.no-lines .layer-lines { visibility: hidden; }
+/* The same layers on the real river's photo, cropped like the photo. */
+.live-mask { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+body.no-water .layer-water, body.no-things .layer-things, body.no-lines .layer-lines { visibility: hidden; }
 
-/* The panel: which camera, which layers, and the numbers. */
-.sam-hud { position: absolute; z-index: 2; top: 76px; left: 16px; width: 330px; max-height: calc(100vh - 176px); overflow-y: auto; scrollbar-width: none; padding: 14px; border-radius: var(--radius); display: grid; gap: 12px; animation: rise-in 0.2s ease both; }
-.sam-head { display: flex; align-items: flex-start; gap: 10px; }
-.sam-head > div { margin-right: auto; }
-.sam-kicker { margin: 0 0 2px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #00beff; }
-.sam-view[data-engine="live"] .sam-kicker::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #2bd96b; box-shadow: 0 0 0 0 rgba(43, 217, 107, 0.6); animation: live-ping 1.6s ease-out infinite; }
+/* SAM's block in the camera node card: layers, numbers, the GPU. */
+.sam-box { display: grid; gap: 10px; padding-top: 2px; }
+.sam-kicker { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #00beff; }
+body[data-sam="live"] .sam-kicker::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #2bd96b; box-shadow: 0 0 0 0 rgba(43, 217, 107, 0.6); animation: live-ping 1.6s ease-out infinite; }
 @keyframes live-ping { 70% { box-shadow: 0 0 0 7px rgba(43, 217, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(43, 217, 107, 0); } }
-.sam-head h2 { margin: 0; font: 700 20px/1.15 var(--display); letter-spacing: -0.01em; }
 
 /* The GPU behind the live view: off, starting (about 35 s) or on, and who may switch it. */
 .sam-gpu { display: grid; gap: 8px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); }
@@ -48,11 +46,6 @@ body.sam-on #view, body.sam-on .sensor, body.sam-on .live { visibility: hidden; 
 .sam-gpu-unlock button { height: 30px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.08); color: var(--fg); font-weight: 600; font-size: 12.5px; cursor: pointer; }
 .sam-gpu-note { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
 
-.sam-stations { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); }
-.sam-stations button { flex: 1; border: 0; background: none; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--muted); white-space: nowrap; transition: background 0.15s, color 0.15s; }
-.sam-stations button:hover { color: var(--fg); }
-.sam-stations [aria-selected="true"] { background: #eaf6ff; color: #06101e; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
-
 .sam-layers { display: flex; flex-wrap: wrap; gap: 6px; }
 .layer-chip { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
 .layer-chip input { position: absolute; opacity: 0; pointer-events: none; }
@@ -68,14 +61,12 @@ body.sam-on #view, body.sam-on .sensor, body.sam-on .live { visibility: hidden; 
 .sam-stats .wide { grid-column: 1 / -1; }
 .sam-stats dt { font-size: 11px; font-weight: 600; color: var(--muted); }
 .sam-stats dd { margin: 3px 0 0; font: 700 16px/1.2 var(--display); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#sam-level { color: #ffd23f; }
 .sam-stats .wide dd { font-size: 14px; }
 .sam-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
 
 @media (max-width: 760px) {
   .layer-pill { padding: 0 11px; }
   .layer-pill span { display: none; }
-  /* On a phone the picture fits the width and the panel sits under it. */
+  /* On a phone the picture fits the width; the cards sit under it. */
   .sam-stage { top: 64px; width: 100vw; transform: translateX(-50%); }
-  .sam-hud { top: auto; bottom: 92px; left: 8px; right: 8px; width: auto; max-height: 46vh; padding: 12px; }
 }

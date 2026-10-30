@@ -1,8 +1,8 @@
 import "@fontsource-variable/inter";
 import "@fontsource-variable/outfit";
 
-// Presentation only: the intro card, the tuning popover, the surge countdown
-// and the look of the camera-node button. The twin's logic (main.ts) owns the
+// Presentation only: the three steps at the top, the tuning popover, the
+// surge countdown and the look of the camera-node button. The twin's logic (main.ts) owns the
 // element ids and their behaviour; this file only watches and decorates them.
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -12,33 +12,43 @@ const send = $<HTMLButtonElement>("send");
 const syncNode = () => document.body.classList.toggle("node-on", send.textContent?.startsWith("Stop") ?? false);
 new MutationObserver(syncNode).observe(send, { childList: true, characterData: true, subtree: true });
 
-// --- intro, once per browser session ---------------------------------------
-const intro = $("intro");
-const seen = (() => {
-  try {
-    return sessionStorage.getItem("vigiax-intro") === "1";
-  } catch {
-    return false;
-  }
-})();
-function closeIntro() {
-  intro.classList.add("out");
-  setTimeout(() => (intro.hidden = true), 400);
-  try {
-    sessionStorage.setItem("vigiax-intro", "1");
-  } catch {
-    /* private mode */
-  }
-}
-if (!seen) {
-  intro.hidden = false;
-  intro.querySelector<HTMLButtonElement>("[data-start]")?.focus();
-}
-intro.querySelector("[data-start]")?.addEventListener("click", () => {
+// --- the camera starts by itself -----------------------------------------------
+// A visitor (a judge) lands on a stream already being watched: the first mask
+// appears within seconds. Only a visible tab starts it, so a tab opened in the
+// background spends nothing; main.ts stops it after a few minutes.
+let started = false;
+function autostart() {
+  if (started || document.hidden) return;
+  started = true;
   if (!document.body.classList.contains("node-on")) send.click();
-  closeIntro();
+}
+addEventListener("load", () => setTimeout(autostart, 300));
+document.addEventListener("visibilitychange", autostart);
+
+// --- three steps: watch, flood, phone ----------------------------------------------
+const steps = $("steps");
+const step = (name: string, state: "now" | "done" | "", text?: string) => {
+  const li = steps.querySelector<HTMLElement>(`[data-step="${name}"]`)!;
+  li.dataset.state = state;
+  if (text) li.querySelector(".step-t")!.textContent = text;
+};
+let flooded = false;
+function syncSteps() {
+  const on = document.body.classList.contains("node-on");
+  const seen = /^Frame sent/.test($("send-state").textContent ?? "");
+  step("watch", on && seen ? "done" : "now", on ? (seen ? "Camera watching" : "Starting the camera…") : "Start the camera");
+  if (!document.body.classList.contains("surging")) step("flood", flooded ? "done" : on && seen ? "now" : "", flooded ? "Flash flood sent" : "Trigger a flash flood");
+  step("phone", !$("wa-on").hidden ? "done" : flooded ? "now" : "", !$("wa-on").hidden ? "Alerts on your phone" : undefined);
+}
+for (const id of ["send", "send-state", "wa-on"])
+  new MutationObserver(syncSteps).observe($(id), { childList: true, characterData: true, subtree: true, attributes: true });
+$("step-watch").addEventListener("click", () => !document.body.classList.contains("node-on") && send.click());
+$("step-flood").addEventListener("click", () => !document.body.classList.contains("surging") && $("surge").click());
+$("step-phone").addEventListener("click", () => {
+  $("wa-card").hidden = false;
+  $("wa-card").dispatchEvent(new Event("open"));
 });
-intro.querySelector("[data-close]")?.addEventListener("click", closeIntro);
+syncSteps();
 
 // --- tuning popover ----------------------------------------------------------
 const tune = $<HTMLButtonElement>("tune");
@@ -49,11 +59,7 @@ function setTuning(open: boolean) {
 }
 tune.addEventListener("click", () => setTuning(tuning.hidden));
 tuning.querySelector("[data-close]")?.addEventListener("click", () => setTuning(false));
-addEventListener("keydown", (e) => {
-  if (e.key !== "Escape") return;
-  if (!intro.hidden) closeIntro();
-  else setTuning(false);
-});
+addEventListener("keydown", (e) => e.key === "Escape" && setTuning(false));
 addEventListener("pointerdown", (e) => {
   const t = e.target as Node;
   if (!tuning.hidden && !tuning.contains(t) && !tune.contains(t)) setTuning(false);
@@ -102,30 +108,29 @@ setInterval(paintSliders, 100);
 for (const s of sliders) s.addEventListener("input", paintSliders);
 paintSliders();
 
-// --- surge countdown ---------------------------------------------------------
-const banner = $("surge-banner");
-const count = $("surge-count");
+// --- surge countdown: step 2 counts down to the peak ---------------------------
 let surgeEnds = 0;
 let surgeTimer = 0;
 function stopSurge() {
   clearInterval(surgeTimer);
-  banner.hidden = true;
   document.body.classList.remove("surging");
+  syncSteps();
 }
 $("surge").addEventListener("click", () => {
   // A flood nobody measures shows nothing: start the camera node with it.
   if (!document.body.classList.contains("node-on")) send.click();
   surgeEnds = Date.now() + +$<HTMLSelectElement>("surge-min").value * 60_000;
-  banner.hidden = false;
+  flooded = true;
   document.body.classList.add("surging");
   const tick = () => {
     const left = Math.max(0, Math.ceil((surgeEnds - Date.now()) / 1000));
-    count.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+    step("flood", "now", `Flood coming · ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`);
     if (!left) stopSurge();
   };
   clearInterval(surgeTimer);
   tick();
   surgeTimer = window.setInterval(tick, 1000);
+  syncSteps();
 });
-// Moving the level by hand cancels the surge in main.ts, so the banner goes too.
-$("level").addEventListener("input", stopSurge);
+// Moving the level by hand cancels the surge in main.ts, so the countdown goes too.
+$("level").addEventListener("input", () => document.body.classList.contains("surging") && stopSurge());
