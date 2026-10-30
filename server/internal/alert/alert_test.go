@@ -161,3 +161,22 @@ func TestSuddenDropRaisesAlert(t *testing.T) {
 		t.Fatalf("message:\n%s", msg)
 	}
 }
+
+// A fast rise is raised one confirmed level at a time; each raise says why
+// for the level it raises to, not for a higher line the water already reached.
+func TestRaiseReasonNamesTheLevelRaisedTo(t *testing.T) {
+	c := TwinDefaults()
+	var s State
+	var got []*Event
+	for i, lv := range []float64{45, 150, 190, 200, 290} {
+		if e := s.Step(&c, obs(i, lv)); e != nil {
+			got = append(got, e)
+		}
+	}
+	if len(got) == 0 || got[0].To != Attention {
+		t.Fatalf("events: %+v", got)
+	}
+	if r := got[0].Reason; !strings.Contains(r, "attention line") || !strings.Contains(r, "past the alert line too") {
+		t.Fatalf("first raise to attention says %q", r)
+	}
+}

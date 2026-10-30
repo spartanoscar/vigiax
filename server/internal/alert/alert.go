@@ -180,6 +180,7 @@ type State struct {
 
 	upN        int       // readings in a row above the current level
 	upTo       Level     // lowest level seen in that run
+	upWhy      string    // why, when that lowest level was seen
 	belowSince time.Time // first reading of the current run below the current level
 	quietUntil time.Time // after a false alarm: no raise to the same level until then
 	quietAt    Level
@@ -188,18 +189,25 @@ type State struct {
 // target is the highest enabled level whose rule holds, and why.
 func target(c *Config, o Obs) (Level, string) {
 	for l := Evacuate; l >= Attention; l-- {
-		r := c.rule(l)
-		if !r.Enabled {
-			continue
-		}
-		if r.LevelCm != nil && o.LevelCm != nil && *o.LevelCm >= *r.LevelCm {
-			return l, fmt.Sprintf("level %.0f cm at or above the %s line (%.0f cm)", *o.LevelCm, l, *r.LevelCm)
-		}
-		if r.RiseCmPerMin != nil && o.RiseCmPerMin != nil && *o.RiseCmPerMin >= *r.RiseCmPerMin {
-			return l, fmt.Sprintf("rising %.1f cm/min, at or above the %s rate (%.1f cm/min)", *o.RiseCmPerMin, l, *r.RiseCmPerMin)
+		if why := holds(c, l, o); why != "" {
+			return l, why
 		}
 	}
 	return Normal, "below every enabled line and rate"
+}
+
+// holds says why the rule of level l holds for this reading, or "" if it does not.
+func holds(c *Config, l Level, o Obs) string {
+	r := c.rule(l)
+	switch {
+	case !r.Enabled:
+		return ""
+	case r.LevelCm != nil && o.LevelCm != nil && *o.LevelCm >= *r.LevelCm:
+		return fmt.Sprintf("level %.0f cm at or above the %s line (%.0f cm)", *o.LevelCm, l, *r.LevelCm)
+	case r.RiseCmPerMin != nil && o.RiseCmPerMin != nil && *o.RiseCmPerMin >= *r.RiseCmPerMin:
+		return fmt.Sprintf("rising %.1f cm/min, at or above the %s rate (%.1f cm/min)", *o.RiseCmPerMin, l, *r.RiseCmPerMin)
+	}
+	return ""
 }
 
 // targetWithDrop adds the damming rule to target: a sudden fall raises to Alert.
@@ -261,14 +269,24 @@ func (s *State) Step(c *Config, o Obs) *Event {
 	case t > s.Level:
 		s.belowSince = time.Time{}
 		if s.upN == 0 || t < s.upTo {
-			s.upTo = t
+			s.upTo, s.upWhy = t, why
 		}
 		s.upN++
 		if s.upN >= max(c.Confirm, 1) {
 			to := s.upTo
 			s.upN = 0
 			if to > s.Level {
-				return ev("raise", to, why)
+				// The level raised to is the lowest the run confirmed; its reason
+				// is that level's rule, said with this reading when it still holds.
+				// A higher line already reached gets its own run of readings.
+				r := holds(c, to, o)
+				if r == "" {
+					r = s.upWhy
+				}
+				if t > to {
+					r += fmt.Sprintf("; past the %s line too, raised there once confirmed (one level at a time)", t)
+				}
+				return ev("raise", to, r)
 			}
 		}
 	case t < s.Level:
