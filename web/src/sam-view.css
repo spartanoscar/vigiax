@@ -31,6 +31,23 @@ body.sam-on #view, body.sam-on .sensor, body.sam-on .live { visibility: hidden; 
 @keyframes live-ping { 70% { box-shadow: 0 0 0 7px rgba(43, 217, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(43, 217, 107, 0); } }
 .sam-head h2 { margin: 0; font: 700 20px/1.15 var(--display); letter-spacing: -0.01em; }
 
+/* The GPU behind the live view: off, starting (about 35 s) or on, and who may switch it. */
+.sam-gpu { display: grid; gap: 8px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); }
+.sam-gpu-row { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.sam-gpu-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #67718a; }
+.sam-gpu[data-stage="starting"] .sam-gpu-dot { background: #ffb020; animation: gpu-blink 1s ease-in-out infinite; }
+.sam-gpu[data-stage="ready"] .sam-gpu-dot { background: #2bd96b; box-shadow: 0 0 10px rgba(43, 217, 107, 0.7); }
+@keyframes gpu-blink { 50% { opacity: 0.3; } }
+.sam-gpu-text { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sam-gpu-btn { flex: none; height: 30px; padding: 0 14px; border-radius: 999px; border: 0; cursor: pointer; font: 700 12.5px/1 var(--sans); color: #06101e; background: #2bd96b; transition: filter 0.15s; }
+.sam-gpu-btn:hover { filter: brightness(1.1); }
+.sam-gpu[data-stage="ready"] .sam-gpu-btn, .sam-gpu[data-stage="starting"] .sam-gpu-btn { color: var(--fg); background: rgba(255, 255, 255, 0.1); }
+.sam-gpu-btn:disabled { opacity: 0.6; cursor: progress; }
+.sam-gpu-unlock { display: flex; gap: 6px; }
+.sam-gpu-unlock input { flex: 1; min-width: 0; height: 30px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); color: var(--fg); font-size: 12.5px; }
+.sam-gpu-unlock button { height: 30px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.08); color: var(--fg); font-weight: 600; font-size: 12.5px; cursor: pointer; }
+.sam-gpu-note { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+
 .sam-stations { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); }
 .sam-stations button { flex: 1; border: 0; background: none; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--muted); white-space: nowrap; transition: background 0.15s, color 0.15s; }
 .sam-stations button:hover { color: var(--fg); }

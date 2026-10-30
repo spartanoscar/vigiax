@@ -139,19 +139,82 @@ events.addEventListener("reading", (e) => {
 
 // --- the GPU, live --------------------------------------------------------------------
 let gpuTimer = 0;
+type GPUState = { stage: string; minutes_left?: number; can_control?: boolean; starting_s?: number; note?: string };
+let gpuState: GPUState = { stage: "off" };
+// checkGPU asks how the GPU is (and says a page is watching, so it stays on):
+// every few seconds while it starts, every 15 s otherwise.
 async function checkGPU() {
   clearTimeout(gpuTimer);
   if (!active) return;
-  const h = await fetch("/api/gpu").then((r) => r.json()).catch(() => ({ stage: "off" }));
+  const h: GPUState = await fetch("/api/gpu?beat=1").then((r) => r.json()).catch(() => ({ stage: "off" }));
   const was = gpu;
   gpu = h.stage;
+  gpuState = h;
+  showGPU();
   stats();
   if (gpu === "ready") {
     if (source === "twin") pump();
     else if (was !== "ready") load();
   }
-  gpuTimer = window.setTimeout(checkGPU, gpu === "ready" ? 30_000 : 15_000);
+  gpuTimer = window.setTimeout(checkGPU, gpu === "ready" || gpu === "off" ? 15_000 : 3_000);
 }
+
+const gpuBox = $("sam-gpu");
+const gpuBtn = $<HTMLButtonElement>("sam-gpu-btn");
+const unlock = $<HTMLFormElement>("sam-gpu-unlock");
+function showGPU() {
+  const h = gpuState;
+  const on = h.stage === "ready";
+  const starting = !on && h.stage !== "off" && h.stage !== "error";
+  gpuBox.dataset.stage = on ? "ready" : starting ? "starting" : "off";
+  const s = h.starting_s ?? 0;
+  $("sam-gpu-text").textContent = on
+    ? `Live GPU on · ${Math.max(0, Math.floor(h.minutes_left ?? 0))} min left`
+    : starting
+      ? `Starting the GPU… ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
+      : "Live GPU off";
+  gpuBtn.hidden = !h.can_control;
+  gpuBtn.disabled = false;
+  gpuBtn.textContent = on ? "Turn off" : starting ? "Cancel" : "Turn on";
+  unlock.hidden = !!h.can_control || on || starting;
+  const note = $("sam-gpu-note");
+  note.textContent =
+    h.note ||
+    (on || starting
+      ? ""
+      : h.can_control
+        ? "Rents a GPU for open-weights SAM 3.1 (about 35 s to start). It turns itself off 3 min after nobody watches."
+        : "Judges can turn on the live GPU with their code. Without it, this view updates every 5 s.");
+  note.hidden = !note.textContent;
+}
+
+gpuBtn.addEventListener("click", async () => {
+  const on = gpuBox.dataset.stage === "off";
+  gpuBtn.disabled = true;
+  if (on) gpuState = { ...gpuState, stage: "starting", starting_s: 0, note: "" };
+  else {
+    gpuState = { ...gpuState, stage: "off" };
+    gpu = "off";
+  }
+  showGPU();
+  const res = await fetch("/api/gpu", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on }) }).catch(() => null);
+  if (res && res.ok) gpuState = await res.json();
+  if (!on) load();
+  checkGPU();
+});
+
+unlock.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $<HTMLInputElement>("sam-gpu-code");
+  const res = await fetch("/api/access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: input.value }) }).catch(() => null);
+  input.value = "";
+  if (!res?.ok) {
+    $("sam-gpu-note").hidden = false;
+    $("sam-gpu-note").textContent = res ? ((await res.json()).error ?? "That code did not work.") : "The service is not reachable.";
+    return;
+  }
+  checkGPU();
+});
 
 // pump sends the twin's picture to the GPU, one frame at a time: the next
 // leaves when the last answer arrives, so a slow link lowers the frame rate

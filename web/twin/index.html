@@ -377,6 +377,18 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         </header>
+        <div class="sam-gpu" id="sam-gpu" data-stage="off">
+          <div class="sam-gpu-row">
+            <span class="sam-gpu-dot" aria-hidden="true"></span>
+            <span class="sam-gpu-text" id="sam-gpu-text" role="status">Live GPU off</span>
+            <button id="sam-gpu-btn" class="sam-gpu-btn" type="button" hidden>Turn on</button>
+          </div>
+          <form id="sam-gpu-unlock" class="sam-gpu-unlock" hidden>
+            <input id="sam-gpu-code" type="password" autocomplete="off" placeholder="Judge code" aria-label="Judge code" />
+            <button type="submit">Unlock</button>
+          </form>
+          <p class="sam-gpu-note" id="sam-gpu-note" hidden></p>
+        </div>
         <div class="sam-stations" role="tablist" aria-label="Camera">
           <button type="button" role="tab" data-sam-source="twin" aria-selected="true">Your twin</button>
           <button type="button" role="tab" data-sam-source="river" aria-selected="false">Real river · El Reno</button>

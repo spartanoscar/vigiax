@@ -19,7 +19,7 @@ import (
 // Meta API budget, and it measures nothing: the level still comes from the
 // frames a station measures.
 //
-//	GET  /api/gpu                          is the GPU there: off, starting, installing, loading, ready
+//	/api/gpu                               is the GPU there; turning it on and off (gpuctl.go)
 //	POST /api/live/segment?prompts=a,b     JPEG body → objects with boxes and masks
 
 const (
@@ -56,10 +56,6 @@ func (g *liveGate) leave(ip string) {
 	g.n--
 }
 
-func (s *server) getGPU(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, s.gpu.Health(r.Context()))
-}
-
 func (s *server) postLiveSegment(w http.ResponseWriter, r *http.Request) {
 	var prompts []string
 	for _, p := range strings.Split(r.URL.Query().Get("prompts"), ",") {
@@ -86,6 +82,7 @@ func (s *server) postLiveSegment(w http.ResponseWriter, r *http.Request) {
 	}
 	defer s.liveGate.leave(ip)
 	t0 := time.Now()
+	s.gpuCtl.touch(t0)
 	res, err := s.gpu.Segment(r.Context(), img, prompts, 0.4)
 	if errors.Is(err, gpu.ErrOff) {
 		httpError(w, http.StatusServiceUnavailable, errors.New("no GPU right now: the view shows the last measured frame"))

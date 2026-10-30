@@ -34,6 +34,7 @@ type Client struct {
 	mu     sync.Mutex
 	mod    time.Time
 	link   link
+	set    *link // given by Link (the service turned the GPU on); wins over the file
 	health Health
 	at     time.Time // when health was asked
 }
@@ -55,9 +56,28 @@ func New(path string) *Client {
 	return &Client{path: path, http: &http.Client{Timeout: 20 * time.Second}}
 }
 
+// Link points the client at a GPU the service turned on; an empty url unlinks it.
+func (c *Client) Link(url, token string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.set, c.at = &link{URL: url, Token: token}, time.Time{}
+	if url == "" {
+		c.set = nil
+	}
+}
+
+// Linked reports whether the client has a GPU to talk to.
+func (c *Client) Linked() bool {
+	l := c.current()
+	return l.URL != "" && l.Token != ""
+}
+
 func (c *Client) current() link {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.set != nil {
+		return *c.set
+	}
 	if c.path != "" {
 		if fi, err := os.Stat(c.path); err == nil {
 			if !fi.ModTime().Equal(c.mod) {

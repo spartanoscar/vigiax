@@ -8,7 +8,7 @@
 //	GET  /api/stations/{id}              one station
 //	GET  /api/stations/{id}/readings     ?minutes=60
 //	GET  /api/stations/{id}/sam          the last measured frame with SAM's mask
-//	GET  /api/gpu, POST /api/live/segment the live SAM view on an optional GPU (live.go)
+//	/api/gpu, POST /api/live/segment     the live SAM view on an optional GPU (live.go, gpuctl.go)
 //	GET  /api/events                     server-sent events
 //
 // Environment: MODEL_API_KEY (required), ADDR (:8790), DATA_DIR (var),
@@ -18,7 +18,9 @@
 // WA_TOKEN, WA_PHONE_ID, WA_NUMBER, WA_APP_SECRET, WA_VERIFY_TOKEN and
 // WA_GRAPH_VERSION (WhatsApp alerts; off without a token), BASETEN_API_KEY
 // (the agent, Muse Spark Open) and AGENT_DAILY_BUDGET_USD (1). The live view's
-// GPU is linked in DATA_DIR/gpu.json ({"url", "token"}) or GPU_URL and GPU_TOKEN.
+// GPU is linked in DATA_DIR/gpu.json ({"url", "token"}) or GPU_URL and GPU_TOKEN, or
+// turned on by a judge through GPU_CTL (with GPU_MAX_MINUTES, GPU_DAILY_BUDGET_USD
+// and GPU_VOLUME passed on to it).
 package main
 
 import (
@@ -61,6 +63,7 @@ type server struct {
 	judgeIP float64 // per-visitor budget with a judge's or the admin's code
 
 	gpu      *gpu.Client // SAM 3.1 on a rented GPU, for the live view only (live.go)
+	gpuCtl   *gpuControl // turning it on and off (gpuctl.go)
 	liveGate liveGate
 
 	agent       *agent.Baseten // Muse Spark Open; nil without BASETEN_API_KEY
@@ -96,6 +99,7 @@ func main() {
 		live:        loadBudget(filepath.Join(dir, "budget-live.json"), envFloat("LIVE_DAILY_BUDGET_USD", 0.5), envFloat("LIVE_DAILY_BUDGET_USD", 0.5)),
 		hub:         newHub(),
 		gpu:         gpu.New(filepath.Join(dir, "gpu.json")),
+		gpuCtl:      newGPUControl(os.Getenv("GPU_CTL")),
 		liveGate:    liveGate{busy: map[string]bool{}},
 		access:      newAccess(os.Getenv("ADMIN_CODE"), os.Getenv("JUDGE_CODE")),
 		judgeIP:     envFloat("JUDGE_DAILY_BUDGET_USD", 2),
@@ -118,6 +122,7 @@ func main() {
 	if err := s.startLiveStations(); err != nil {
 		log.Fatal(err)
 	}
+	go s.gpuWatch()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/stations/{id}/frames", s.postFrame)
@@ -126,7 +131,7 @@ func main() {
 	mux.HandleFunc("GET /api/stations/{id}", s.getStation)
 	mux.HandleFunc("GET /api/stations/{id}/readings", s.getReadings)
 	mux.HandleFunc("GET /api/stations/{id}/sam", s.getSAM)
-	mux.HandleFunc("GET /api/gpu", s.getGPU)
+	mux.HandleFunc("/api/gpu", s.handleGPU)
 	mux.HandleFunc("POST /api/live/segment", s.postLiveSegment)
 	mux.HandleFunc("GET /api/events", s.hub.serve)
 	mux.HandleFunc("/api/access", s.handleAccess)
