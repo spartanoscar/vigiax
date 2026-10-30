@@ -171,6 +171,11 @@ let sessionEnds = 0;
 const truth: { t: number; cm: number }[] = []; // what the twin really had when each frame left
 const measured: { t: number; cm: number }[] = [];
 
+// A page load is a new run of the twin: its water starts at the bottom again,
+// so the station starts over too (alert level normal, last run's readings no
+// longer compared). Without it, the first frame would look like a 2-m drop.
+const restarted = fetch(`/api/stations/${STATION}/restart`, { method: "POST" }).catch(() => null);
+
 // What the node learned about its gauge while it had signal, to read it alone.
 const localGauge = new LocalGauge();
 let calib: Summary["calibration"];
@@ -182,6 +187,7 @@ async function sendFrame() {
     $("send-state").textContent = "Paused while the tab is hidden";
     return;
   }
+  await restarted;
   truth.push({ t: Date.now(), cm: state.levelM * 100 });
   if (!link.online) return measureOnNode();
   // Signal back: what was kept goes first, so the history stays in order.
@@ -375,6 +381,22 @@ const showCost = () =>
   fetch("/api/stations").then((r) => r.json()).then((b) => ($("cost").textContent = `$${b.spent_today_usd.toFixed(3)}`)).catch(() => {});
 showCost();
 setInterval(showCost, 15000);
+
+// Pixels to metres on the water surface, for the surface speed: the ray from
+// the camera, as installed, through a pixel meets the water at the measured
+// level. The stream flows toward the camera (+z): "along" is downstream.
+{
+  const cam = node.camera.clone();
+  samView.ground = (u, v, levelM) => {
+    cam.quaternion.copy(node.home);
+    cam.updateMatrixWorld();
+    const p = new THREE.Vector3((u / FRAME_W) * 2 - 1, 1 - (v / FRAME_H) * 2, 0.5).unproject(cam);
+    const d = p.sub(cam.position).normalize();
+    if (d.y >= 0) return null;
+    const t = (levelM - cam.position.y) / d.y;
+    return { along: cam.position.z + d.z * t, across: cam.position.x + d.x * t };
+  };
+}
 
 // --- feed and chart -------------------------------------------------------
 const feed = $<HTMLCanvasElement>("feed");

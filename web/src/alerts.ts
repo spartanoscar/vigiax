@@ -283,7 +283,10 @@ events.addEventListener("alert", (e) => {
   const a: AlertMsg = JSON.parse((e as MessageEvent).data);
   if (a.station === twin()) {
     badge($("alert-level"), a.event.kind === "blind" ? a.event.from : a.event.to);
-    if (!a.rule || a.rule.channels.includes("push")) toast(a);
+    // A jump is in the history; a toast would fire at every move of the
+    // level slider. A restart is the page itself starting over.
+    const quiet = a.event.kind === "jump" || a.event.kind === "restart";
+    if (!quiet && (!a.rule || a.rule.channels.includes("push"))) toast(a);
     if (a.event.kind === "raise" && a.rule?.channels.includes("siren")) siren();
   }
   if (!panel.hidden && a.station === stationId()) load();

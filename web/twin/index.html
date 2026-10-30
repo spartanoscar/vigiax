@@ -421,6 +421,13 @@
     <!-- An alert as the dashboard shows it -->
     <div id="toasts" class="toasts" aria-live="assertive"></div>
 
+    <!-- Surface speed, from what floats, while the live GPU runs -->
+    <aside id="speed-card" class="speed-card glass" hidden aria-label="Surface speed">
+      <p class="speed-k">Surface speed</p>
+      <p class="speed-v" id="speed-v">–</p>
+      <p class="speed-how" id="speed-how"></p>
+    </aside>
+
     <!-- Step 3: the alert on the visitor's own phone -->
     <aside id="wa-card" class="wa-card glass" hidden aria-labelledby="wa-card-title">
       <a id="wa-card-qr" class="wa-card-qr" target="_blank" rel="noopener" aria-label="Open WhatsApp with the message ready"></a>

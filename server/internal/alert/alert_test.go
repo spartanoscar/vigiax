@@ -180,3 +180,24 @@ func TestRaiseReasonNamesTheLevelRaisedTo(t *testing.T) {
 		t.Fatalf("first raise to attention says %q", r)
 	}
 }
+
+func TestRestartStartsOverAndSurvivesReplay(t *testing.T) {
+	c := TwinDefaults()
+	var s State
+	var evs []Event
+	for i, lv := range []float64{45, 270, 280, 290} {
+		if e := s.Step(&c, obs(i, lv)); e != nil {
+			evs = append(evs, *e)
+		}
+	}
+	if s.Level != Evacuate {
+		t.Fatalf("level %v before the restart", s.Level)
+	}
+	evs = append(evs, s.Restart(t0.Add(time.Minute)))
+	if s.Level != Normal || Replay(evs).Level != Normal {
+		t.Fatalf("after a restart: %v, replayed %v", s.Level, Replay(evs).Level)
+	}
+	if e := s.Step(&c, obs(20, 45)); e != nil {
+		t.Fatalf("calm water after a restart raised %+v", e)
+	}
+}

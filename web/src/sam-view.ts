@@ -86,9 +86,67 @@ addEventListener("net-change", () => {
   stats();
 });
 
+// --- surface speed --------------------------------------------------------------------
+// What floats moves with the surface: a log SAM 3.1 finds in one live frame and
+// again, a little downstream, in the next has moved at the water's speed. The
+// picture's pixels become metres on the water surface through the camera's
+// installed pose and the measured level (main.ts gives the function). Clear
+// water gives SAM nothing to follow, and then there is no speed to show.
+type Ground = (u: number, v: number, levelM: number) => { along: number; across: number } | null;
+let ground: Ground | null = null;
+let prevLogs: { t: number; at: { along: number; across: number }[] } | null = null;
+let speeds: { t: number; v: number }[] = [];
+const SPEED_WINDOW = 10_000;
+
+function trackSpeed(items: { o: Obj }[], w: number, h: number) {
+  const r = station?.last;
+  const now = performance.now();
+  speeds = speeds.filter((s) => now - s.t < SPEED_WINDOW);
+  if (!ground || r?.level_cm == null || !fresh(r)) {
+    prevLogs = null;
+    return showSpeed();
+  }
+  const levelM = r.level_cm / 100;
+  const at = items
+    .filter(({ o }) => o.label === "log")
+    .map(({ o }) => ground!(((o.box[0] + o.box[2]) / 2) * (FRAME_W / w), ((o.box[1] + o.box[3]) / 2) * (FRAME_H / h), levelM))
+    .filter((p): p is { along: number; across: number } => !!p);
+  if (prevLogs && now - prevLogs.t < 2500) {
+    const dt = (now - prevLogs.t) / 1000;
+    for (const p of prevLogs.at) {
+      // The nearest log that moved downstream, not sideways, not impossibly fast.
+      let best: { v: number; d: number } | null = null;
+      for (const q of at) {
+        const da = q.along - p.along, dc = q.across - p.across;
+        if (da <= 0 || Math.abs(dc) > 1.2 || da / dt > 10) continue;
+        const d = Math.hypot(da, dc);
+        if (!best || d < best.d) best = { v: da / dt, d };
+      }
+      if (best) speeds.push({ t: now, v: best.v });
+    }
+  }
+  prevLogs = { t: now, at };
+  showSpeed();
+}
+
+function showSpeed() {
+  const card = $("speed-card");
+  card.hidden = !(gpu === "ready" && pumping && link.online);
+  if (card.hidden) return;
+  const vs = speeds.map((s) => s.v).sort((a, b) => a - b);
+  $("speed-v").textContent = vs.length >= 3 ? `${vs[vs.length >> 1].toFixed(1)} m/s` : "–";
+  $("speed-how").textContent =
+    vs.length >= 3
+      ? `${vs.length} moves of floating logs in the last ${SPEED_WINDOW / 1000} s, followed by SAM 3.1`
+      : "Needs something floating to follow (logs, debris): clear water gives SAM nothing to track.";
+}
+
 // main.ts asks whether to draw the camera's picture instead of the 3D view, and
 // hands each frame over as it renders it.
 export const samView = {
+  set ground(g: Ground) {
+    ground = g;
+  },
   // local: the waterline the node read by itself, while it has no signal.
   local(y?: number, cm?: number) {
     nodeY = y ?? null;
@@ -278,6 +336,9 @@ async function pump() {
   } finally {
     pumping = false;
     stamps.length = 0;
+    speeds = [];
+    prevLogs = null;
+    showSpeed();
     if (gpu !== "ready") loadTwin();
     stats();
   }
@@ -391,6 +452,7 @@ async function paintLive(layers: Layers, live: Live, twin: boolean) {
   const items = objects.flatMap((o, i) => (masks[i] && !WATER.includes(o.label) ? [{ o, m: masks[i]! }] : []));
   paint(layers, waterMasks, items, w, h);
   if (!twin) return;
+  trackSpeed(items, w, h);
 
   const counts = new Map<string, number>();
   for (const { o } of items) counts.set(o.label, (counts.get(o.label) ?? 0) + 1);

@@ -331,11 +331,23 @@ func (s *State) FalseAlarm(now time.Time, by string, quiet time.Duration) *Event
 func Replay(events []Event) State {
 	var s State
 	for _, e := range events {
-		if e.Kind == "raise" || e.Kind == "lower" || e.Kind == "false_alarm" {
+		switch e.Kind {
+		case "raise", "lower", "false_alarm":
 			s.Level, s.Since = e.To, e.T
+		case "restart":
+			s = State{Since: e.T}
 		}
 	}
 	return s
+}
+
+// Restart begins a new run of a simulated station (the digital twin reloaded
+// with its water back at the start): the level is normal again, nothing about
+// the last run carries over, and nobody is told.
+func (s *State) Restart(now time.Time) Event {
+	e := Event{T: now, Kind: "restart", From: s.Level, To: Normal, Reason: "a new simulation started"}
+	*s = State{Since: now}
+	return e
 }
 
 // Rule returns the rule for a level (nil for normal).

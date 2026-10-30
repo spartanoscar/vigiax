@@ -121,6 +121,37 @@ func (s *server) postNode(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"added": added, "station": sum})
 }
 
+// postRestart begins a new run of a twin station: the page reloaded and its
+// water is back at the start. The alert level is normal again without telling
+// anyone, and the readings of the last run no longer count for jumps or rises.
+//
+//	POST /api/stations/{id}/restart
+func (s *server) postRestart(w http.ResponseWriter, r *http.Request) {
+	st, err := s.station(r.PathValue("id"))
+	if err != nil {
+		httpError(w, http.StatusBadRequest, err)
+		return
+	}
+	cfg := st.Config()
+	if cfg.Source != nil {
+		httpError(w, http.StatusForbidden, errors.New("only a twin can start over"))
+		return
+	}
+	now := time.Now().UTC()
+	a := s.alerts(cfg.ID)
+	a.mu.Lock()
+	e := a.state.Restart(now)
+	a.record(e)
+	a.restart = now
+	a.mu.Unlock()
+	s.mu.Lock()
+	delete(s.moved, cfg.ID)
+	s.mu.Unlock()
+	c := alertConfig(cfg)
+	s.hub.publish("alert", alertEvent{Station: cfg.ID, Event: e, Rule: c.Rule(e.To), Message: messages(&c, e)})
+	writeJSON(w, map[string]string{"level": e.To.String()})
+}
+
 // parseCrop reads ?crop=x,y,w,h: where a frame sits in the node's whole picture.
 func parseCrop(q string) (*station.Crop, error) {
 	if q == "" {

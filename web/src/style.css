@@ -67,6 +67,14 @@ body[data-net="lora"] .net-modes [aria-checked="true"] { background: #b98cff; }
 .siren { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 77, 79, 0.2); border: 1px solid rgba(255, 77, 79, 0.6); color: #ffd0d0; font-size: 12.5px; font-weight: 700; }
 .siren-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--flood); animation: pulse 0.9s ease-out infinite; }
 
+/* Surface speed: bottom left, under the real river's card. */
+.speed-card { position: fixed; z-index: 4; left: 16px; bottom: 22px; width: 300px; padding: 12px 14px; border-radius: 18px; display: grid; gap: 2px; animation: rise-in 0.25s ease both; }
+.speed-card p { margin: 0; }
+.speed-k { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #00beff; }
+.speed-v { font: 700 30px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.speed-how { font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+@media (max-width: 1100px) { .speed-card { bottom: 92px; width: 240px; } }
+
 /* Three steps a visitor (a judge) follows; each lights up as it is done. */
 .steps { list-style: none; margin: 0; padding: 5px; border-radius: 999px; display: flex; align-items: center; gap: 2px; }
 .steps li { display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; border-radius: 999px; color: var(--muted); transition: background 0.2s, color 0.2s; }

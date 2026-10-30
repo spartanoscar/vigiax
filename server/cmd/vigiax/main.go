@@ -128,6 +128,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/stations/{id}/frames", s.postFrame)
 	mux.HandleFunc("POST /api/stations/{id}/node", s.postNode)
+	mux.HandleFunc("POST /api/stations/{id}/restart", s.postRestart)
 	mux.HandleFunc("POST /api/stations/{id}/calibration", s.postCalibration)
 	mux.HandleFunc("GET /api/stations", s.getStations)
 	mux.HandleFunc("GET /api/stations/{id}", s.getStation)

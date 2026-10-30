@@ -217,8 +217,8 @@ func (s *server) facts(st *station.Station, woke alert.Event, now time.Time) age
 	}
 	// The same rates the rules use: a jump between two frames is left out.
 	if last, ok := st.Last(); ok {
-		f.Rise5 = observe(st, &alert.Config{RiseWindowMin: 5}, last).RiseCmPerMin
-		f.Rise30 = observe(st, &alert.Config{RiseWindowMin: 30}, last).RiseCmPerMin
+		f.Rise5 = observe(st, &alert.Config{RiseWindowMin: 5}, last, time.Time{}).RiseCmPerMin
+		f.Rise30 = observe(st, &alert.Config{RiseWindowMin: 30}, last, time.Time{}).RiseCmPerMin
 	}
 	rs := st.Readings(now.Add(-time.Duration(max(c.RiseWindowMin, 5)) * time.Minute))
 	step := max(1, len(rs)/8) // at most about eight points

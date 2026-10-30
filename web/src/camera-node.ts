@@ -20,7 +20,7 @@ export class CameraNode {
   private renderer: THREE.WebGLRenderer;
   private lens = new Lens(FRAME_W, FRAME_H);
   private out: CanvasRenderingContext2D;
-  private home = new THREE.Quaternion(); // where the camera points when nobody touched it
+  readonly home = new THREE.Quaternion(); // where the camera points when nobody touched it (as installed)
   private knocked = new THREE.Quaternion(); // a knock leaves it pointing elsewhere
   private lastAt = performance.now();
   // The infrared lamp next to the lens. It is on only while the node renders:

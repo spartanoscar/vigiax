@@ -22,10 +22,11 @@ import (
 
 // stationAlerts is the alert level of one station and its history.
 type stationAlerts struct {
-	mu     sync.Mutex
-	state  alert.State
-	events []alert.Event
-	path   string
+	mu      sync.Mutex
+	state   alert.State
+	events  []alert.Event
+	path    string
+	restart time.Time // readings before it belong to an earlier run of the twin
 }
 
 const keepEvents = 200
@@ -50,6 +51,11 @@ func (s *server) alerts(id string) *stationAlerts {
 			a.events = a.events[len(a.events)-keepEvents:]
 		}
 		a.state = alert.Replay(a.events)
+		for _, e := range a.events {
+			if e.Kind == "restart" {
+				a.restart = e.T
+			}
+		}
 	}
 	s.alertState[id] = a
 	return a
@@ -102,7 +108,7 @@ const (
 // last three levels (one odd frame cannot move it) and the rise rate, both
 // over the readings after the last jump, so a camera that moved does not
 // count as rising water.
-func observe(st *station.Station, c *alert.Config, rd station.Reading) alert.Obs {
+func observe(st *station.Station, c *alert.Config, rd station.Reading, since time.Time) alert.Obs {
 	o := alert.Obs{T: rd.T, Blind: rd.Blind}
 	if rd.Blind || rd.LevelCm == nil {
 		o.Blind = true
@@ -111,7 +117,7 @@ func observe(st *station.Station, c *alert.Config, rd station.Reading) alert.Obs
 	window := time.Duration(c.RiseWindowMin * float64(time.Minute))
 	var rs []station.Reading
 	for _, r := range st.Readings(rd.T.Add(-window)) {
-		if r.LevelCm != nil && !r.T.After(rd.T) {
+		if r.LevelCm != nil && !r.T.After(rd.T) && !r.T.Before(since) {
 			rs = append(rs, r)
 		}
 	}
@@ -190,7 +196,11 @@ func (s *server) checkAlerts(st *station.Station, rd station.Reading) {
 func (s *server) stepAlerts(st *station.Station, rd station.Reading) (*alert.Event, *alert.Config) {
 	cfg := st.Config()
 	c := alertConfig(cfg)
-	o := observe(st, &c, rd)
+	a := s.alerts(cfg.ID)
+	a.mu.Lock()
+	since := a.restart
+	a.mu.Unlock()
+	o := observe(st, &c, rd, since)
 	if o.JumpCm != nil && cfg.Calib != nil {
 		s.checkPlacement(cfg, rd.T)
 	}
@@ -200,7 +210,6 @@ func (s *server) stepAlerts(st *station.Station, rd station.Reading) (*alert.Eve
 	if moved {
 		o = alert.Obs{T: rd.T, Moved: true, MovedWhy: why}
 	}
-	a := s.alerts(cfg.ID)
 	a.mu.Lock()
 	e := a.state.Step(&c, o)
 	if e != nil {

@@ -62,6 +62,13 @@ func Fill(c *Config, e Event, lang string) Fields {
 			fact = "The gauge is no longer where it was calibrated: the camera moved. Readings are paused and the alert level is kept."
 			action = "Check the camera mount and recalibrate."
 		}
+	case "restart":
+		title = "NUEVA SIMULACIÓN"
+		fact = "El gemelo empezó una simulación nueva: el nivel de alerta vuelve a normal."
+		if en {
+			title = "NEW SIMULATION"
+			fact = "The twin started a new simulation: the alert level is back to normal."
+		}
 	case "blind":
 		title = "CÁMARA SIN VISIÓN"
 		fact = "La cámara no ve el agua (noche, niebla o lente tapado). Se mantiene el último nivel de alerta."
