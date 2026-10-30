@@ -320,16 +320,20 @@
               </figcaption>
             </figure>
             <div class="real-river">
-              <div class="rr-pair">
-                <figure class="rr-shot">
-                  <img src="/img/el-reno-before.webp" alt="USGS webcam on the North Canadian River at El Reno on October 13, low water, with the water SAM 3.1 found shaded blue." width="1440" height="810" loading="lazy" />
-                  <figcaption><strong>Oct 13</strong> · official gage 0.93&nbsp;m · SAM&nbsp;3.1 0.92&nbsp;m</figcaption>
-                </figure>
-                <figure class="rr-shot">
-                  <img src="/img/el-reno-peak.webp" alt="The same webcam on October 15 at the flood peak, the river filling the frame, with the water SAM 3.1 found shaded blue." width="1440" height="810" loading="lazy" />
-                  <figcaption><strong>Oct 15, flood peak</strong> · official gage 4.56&nbsp;m · SAM&nbsp;3.1 4.54&nbsp;m</figcaption>
-                </figure>
+              <div class="rr-days" role="tablist" aria-label="Day">
+                <button type="button" role="tab" aria-selected="true" data-day="before">Oct 13 <span>0.93&nbsp;m</span></button>
+                <button type="button" role="tab" aria-selected="false" data-day="peak">Oct 15, flood peak <span>4.56&nbsp;m</span></button>
               </div>
+              <figure class="compare">
+                <div class="cmp-view" style="--pos: 40%">
+                  <img class="cmp-photo" src="/img/el-reno-before-photo.webp" alt="USGS webcam on the North Canadian River at El Reno on October 13, low water." width="1440" height="810" loading="lazy" />
+                  <div class="cmp-sam"><img src="/img/el-reno-before.webp" alt="The same frame with the water SAM 3.1 found shaded blue." width="1440" height="810" loading="lazy" /></div>
+                  <span class="cmp-handle" aria-hidden="true"></span>
+                  <span class="cmp-tag l" aria-hidden="true">Photo</span><span class="cmp-tag r" aria-hidden="true">SAM 3.1</span>
+                  <input type="range" min="0" max="100" step="0.5" value="40" aria-label="Slide between the photo and what SAM 3.1 found" />
+                </div>
+                <figcaption><strong>Oct 13</strong> · official gage 0.93&nbsp;m · SAM&nbsp;3.1 0.92&nbsp;m</figcaption>
+              </figure>
               <p class="rr-note">
                 North Canadian River at El Reno, Oklahoma (USGS webcam). Over the whole 3.66&nbsp;m flood, mean error 6.9&nbsp;cm
                 against the official gage, on frames not used to calibrate.

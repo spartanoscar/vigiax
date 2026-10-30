@@ -203,11 +203,28 @@ code, pre { font-family: var(--mono); }
 .measure-visual { display: grid; gap: 22px; }
 .measure-visual .shot { transform: none; }
 .real-river { padding: 16px; border-radius: 22px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(9, 50, 90, 0.1); }
-.rr-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.rr-shot { margin: 0; display: grid; gap: 8px; align-content: start; }
-.rr-shot img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 14px; background: var(--navy-2); }
-.rr-shot figcaption { font-size: 12.5px; line-height: 1.45; color: var(--muted); font-variant-numeric: tabular-nums; }
-.rr-shot figcaption strong { font-weight: 600; color: var(--ink); }
+.rr-days { display: flex; gap: 4px; padding: 3px; margin-bottom: 12px; border-radius: 999px; background: var(--tint); border: 1px solid var(--line); }
+.rr-days button { flex: 1; display: inline-flex; justify-content: center; align-items: baseline; gap: 8px; padding: 8px 12px; border: 0; border-radius: 999px; background: none; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--muted); transition: background 0.15s, color 0.15s, box-shadow 0.15s; }
+.rr-days button span { font-weight: 500; font-variant-numeric: tabular-nums; }
+.rr-days button:hover { color: var(--ink); }
+.rr-days [aria-selected="true"] { background: var(--card); color: var(--ink); box-shadow: 0 2px 10px rgba(9, 50, 90, 0.12); }
+.rr-days [aria-selected="true"] span { color: var(--blue); }
+
+/* Photo and SAM 3.1 stacked; the SAM layer is clipped at the handle. */
+.compare { margin: 0; display: grid; gap: 10px; }
+.cmp-view { position: relative; border-radius: 14px; overflow: hidden; background: var(--navy-2); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.cmp-view img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.cmp-sam { position: absolute; inset: 0; clip-path: inset(0 0 0 var(--pos)); }
+.cmp-handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25); pointer-events: none; }
+.cmp-handle::after { content: ""; position: absolute; top: 50%; left: 50%; width: 38px; height: 38px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b1b26' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 7l-5 5 5 5M15 7l5 5-5 5'/%3E%3C/svg%3E") center / 20px no-repeat; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+.cmp-tag { position: absolute; bottom: 10px; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: rgba(6, 11, 22, 0.62); backdrop-filter: blur(6px); pointer-events: none; }
+.cmp-tag.l { left: 10px; }
+.cmp-tag.r { right: 10px; }
+.cmp-view input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+.cmp-view:has(input:focus-visible) { outline: 3px solid var(--blue); outline-offset: 3px; }
+.cmp-view.intro .cmp-sam, .cmp-view.intro .cmp-handle { transition: clip-path 0.9s cubic-bezier(0.3, 0.7, 0.2, 1), left 0.9s cubic-bezier(0.3, 0.7, 0.2, 1); }
+.compare figcaption { font-size: 13px; line-height: 1.45; color: var(--muted); font-variant-numeric: tabular-nums; }
+.compare figcaption strong { font-weight: 600; color: var(--ink); }
 .rr-note { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.55; color: var(--text); }
 .rr-credit { margin: 6px 0 0; font-size: 11.5px; color: var(--muted); }
 
@@ -387,7 +404,7 @@ code, pre { font-family: var(--mono); }
   .cta-row .btn { width: 100%; }
   .quote { margin-top: 56px; padding-left: 18px; }
   .real-river { padding: 12px; }
-  .rr-pair { gap: 10px; }
+  .rr-days button { flex-direction: column; align-items: center; gap: 1px; padding: 7px 8px; font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
