@@ -7,6 +7,8 @@
 //	GET  /api/stations                   stations with their last reading and rise rates
 //	GET  /api/stations/{id}              one station
 //	GET  /api/stations/{id}/readings     ?minutes=60
+//	GET  /api/stations/{id}/sam          the last measured frame with SAM's mask
+//	GET  /api/gpu, POST /api/live/segment the live SAM view on an optional GPU (live.go)
 //	GET  /api/events                     server-sent events
 //
 // Environment: MODEL_API_KEY (required), ADDR (:8790), DATA_DIR (var),
@@ -15,7 +17,8 @@
 // JUDGE_DAILY_BUDGET_USD (2, per judge), ADMIN_CODE and JUDGE_CODE (access codes),
 // WA_TOKEN, WA_PHONE_ID, WA_NUMBER, WA_APP_SECRET, WA_VERIFY_TOKEN and
 // WA_GRAPH_VERSION (WhatsApp alerts; off without a token), BASETEN_API_KEY
-// (the agent, Muse Spark Open) and AGENT_DAILY_BUDGET_USD (1).
+// (the agent, Muse Spark Open) and AGENT_DAILY_BUDGET_USD (1). The live view's
+// GPU is linked in DATA_DIR/gpu.json ({"url", "token"}) or GPU_URL and GPU_TOKEN.
 package main
 
 import (
@@ -38,6 +41,7 @@ import (
 	"github.com/spartanoscar/vigiax/server/internal/agent"
 	"github.com/spartanoscar/vigiax/server/internal/alert"
 	"github.com/spartanoscar/vigiax/server/internal/gauge"
+	"github.com/spartanoscar/vigiax/server/internal/gpu"
 	"github.com/spartanoscar/vigiax/server/internal/meta"
 	"github.com/spartanoscar/vigiax/server/internal/scene"
 	"github.com/spartanoscar/vigiax/server/internal/station"
@@ -55,6 +59,9 @@ type server struct {
 
 	access  *access
 	judgeIP float64 // per-visitor budget with a judge's or the admin's code
+
+	gpu      *gpu.Client // SAM 3.1 on a rented GPU, for the live view only (live.go)
+	liveGate liveGate
 
 	agent       *agent.Baseten // Muse Spark Open; nil without BASETEN_API_KEY
 	agentBudget *budget
@@ -88,6 +95,8 @@ func main() {
 		budget:      loadBudget(filepath.Join(dir, "budget.json"), envFloat("DAILY_BUDGET_USD", 3), envFloat("IP_DAILY_BUDGET_USD", 0.5)),
 		live:        loadBudget(filepath.Join(dir, "budget-live.json"), envFloat("LIVE_DAILY_BUDGET_USD", 0.5), envFloat("LIVE_DAILY_BUDGET_USD", 0.5)),
 		hub:         newHub(),
+		gpu:         gpu.New(filepath.Join(dir, "gpu.json")),
+		liveGate:    liveGate{busy: map[string]bool{}},
 		access:      newAccess(os.Getenv("ADMIN_CODE"), os.Getenv("JUDGE_CODE")),
 		judgeIP:     envFloat("JUDGE_DAILY_BUDGET_USD", 2),
 		stations:    map[string]*station.Station{},
@@ -117,6 +126,8 @@ func main() {
 	mux.HandleFunc("GET /api/stations/{id}", s.getStation)
 	mux.HandleFunc("GET /api/stations/{id}/readings", s.getReadings)
 	mux.HandleFunc("GET /api/stations/{id}/sam", s.getSAM)
+	mux.HandleFunc("GET /api/gpu", s.getGPU)
+	mux.HandleFunc("POST /api/live/segment", s.postLiveSegment)
 	mux.HandleFunc("GET /api/events", s.hub.serve)
 	mux.HandleFunc("/api/access", s.handleAccess)
 	mux.HandleFunc("/api/stations/{id}/alerts", s.handleAlerts)

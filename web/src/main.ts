@@ -5,6 +5,7 @@ import { World, GAUGE_POS, GAUGE_HEIGHT, groundHeight, type WorldState } from ".
 import { CameraNode, FRAME_W, FRAME_H } from "./camera-node";
 import { events } from "./events";
 import { STATION } from "./station";
+import { samView } from "./sam-view";
 
 const FRAME_SECONDS = 5;
 const SESSION_MINUTES = 5; // the camera node stops by itself: a surge fits, an open tab costs little
@@ -359,12 +360,20 @@ renderer.setAnimationLoop((now) => {
   }
   world.update(state, dt);
   controls.update();
-  world.setWaterEnvironment(mainEnv);
-  renderer.toneMappingExposure = world.exposure;
-  renderer.render(world.scene, camera);
+  // In the SAM view the screen shows the camera node's picture, at full rate,
+  // and the main view is not drawn at all.
+  const sam = samView.twin;
+  if (sam) {
+    node.render();
+    samView.frame(node.output);
+  } else if (!samView.open) {
+    world.setWaterEnvironment(mainEnv);
+    renderer.toneMappingExposure = world.exposure;
+    renderer.render(world.scene, camera);
+  }
   if (performance.now() - feedAt > 500) {
     feedAt = performance.now();
-    node.render();
+    if (!sam) node.render();
     feedCtx.drawImage(node.output, 0, 0);
     drawChart();
   }
