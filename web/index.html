@@ -297,9 +297,13 @@
             <p class="kicker">Measure</p>
             <h2 class="h2">It measures the water. <span class="hl">It doesn't guess.</span></h2>
             <p class="body-lg">
-              SAM 3.1 finds the water in every frame and the server reads where it meets the gauge. Calibrated once —
-              Muse Spark reads the numbers printed on the gauge itself — every frame becomes a level in centimetres
-              and a rate of rise.
+              SAM 3.1 finds the water in every frame. In the twin, the server reads where it meets the gauge:
+              calibrated once — Muse Spark reads the numbers printed on the gauge itself — every frame becomes a level
+              in centimetres and a rate of rise.
+            </p>
+            <p class="body-lg">
+              A real river rarely has a gauge in view. There the level comes from how much of the picture is water,
+              through a rating fitted to the official gage.
             </p>
             <ul class="checks">
               <li>Calibrates by reading the gauge, no tape measure</li>
@@ -307,13 +311,32 @@
               <li>In the twin, every reading is checked against the true level</li>
             </ul>
           </div>
-          <figure class="band-visual shot">
-            <img src="/img/camera-frame.webp" alt="A frame from the camera node: the stream, the gauge and the waterline found by SAM 3.1." width="1280" height="720" loading="lazy" />
-            <figcaption>
-              <span class="cap-dot" aria-hidden="true"></span>
-              What the camera node sends, with the waterline SAM 3.1 found
-            </figcaption>
-          </figure>
+          <div class="band-visual measure-visual">
+            <figure class="shot">
+              <img src="/img/camera-frame.webp" alt="A frame from the twin's camera node: the stream, the gauge and the waterline found by SAM 3.1." width="1280" height="720" loading="lazy" />
+              <figcaption>
+                <span class="cap-dot" aria-hidden="true"></span>
+                Digital twin: the level read at the gauge
+              </figcaption>
+            </figure>
+            <div class="real-river">
+              <div class="rr-pair">
+                <figure class="rr-shot">
+                  <img src="/img/el-reno-before.webp" alt="USGS webcam on the North Canadian River at El Reno on October 13, low water, with the water SAM 3.1 found shaded blue." width="1440" height="810" loading="lazy" />
+                  <figcaption><strong>Oct 13</strong> · official gage 0.93&nbsp;m · SAM&nbsp;3.1 0.92&nbsp;m</figcaption>
+                </figure>
+                <figure class="rr-shot">
+                  <img src="/img/el-reno-peak.webp" alt="The same webcam on October 15 at the flood peak, the river filling the frame, with the water SAM 3.1 found shaded blue." width="1440" height="810" loading="lazy" />
+                  <figcaption><strong>Oct 15, flood peak</strong> · official gage 4.56&nbsp;m · SAM&nbsp;3.1 4.54&nbsp;m</figcaption>
+                </figure>
+              </div>
+              <p class="rr-note">
+                North Canadian River at El Reno, Oklahoma (USGS webcam). Over the whole 3.66&nbsp;m flood, mean error 6.9&nbsp;cm
+                against the official gage, on frames not used to calibrate.
+              </p>
+              <p class="rr-credit">Imagery: U.S. Geological Survey (public domain)</p>
+            </div>
+          </div>
         </div>
       </section>
 
