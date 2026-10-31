@@ -1,0 +1,21 @@
+run,mode,time_utc,seconds_from_start,kind,from,to,by,level_cm,reason
+plain,rules,2026-10-31T17:29:25.842925Z,105.4,raise,normal,attention,,150,"level 134 cm at or above the attention line (100 cm); past the evacuate line too, raised there once confirmed (one level at a time)"
+plain,rules,2026-10-31T17:29:40.840798Z,120.4,raise,attention,evacuate,,201,"rising 71.9 cm/min, at or above the evacuate rate (6.0 cm/min)"
+plain,live,2026-10-31T17:29:25.842925Z,105.4,raise,normal,attention,,150,"level 134 cm at or above the attention line (100 cm); past the evacuate line too, raised there once confirmed (one level at a time)"
+plain,live,2026-10-31T17:29:33.685375Z,113.3,raise,attention,alert,agent,150,"agent: Water rose about 100 cm in under a minute to 150 cm with a 51 cm/min rise, accelerating toward the 180 cm alert line. Raising now gives time to keep clear of banks before it is reached."
+plain,live,2026-10-31T17:29:45.866395Z,125.4,raise,alert,evacuate,,218,"rising 78.2 cm/min, at or above the evacuate rate (6.0 cm/min)"
+people,rules,2026-10-31T17:33:47.145096Z,105.4,raise,normal,attention,,155,"level 139 cm at or above the attention line (100 cm); past the evacuate line too, raised there once confirmed (one level at a time)"
+people,rules,2026-10-31T17:34:02.134935Z,120.4,raise,attention,evacuate,,206,"rising 75.3 cm/min, at or above the evacuate rate (6.0 cm/min)"
+people,live,2026-10-31T17:33:47.145096Z,105.4,raise,normal,attention,,155,"level 139 cm at or above the attention line (100 cm); past the evacuate line too, raised there once confirmed (one level at a time)"
+people,live,2026-10-31T17:33:52.6579Z,110.9,raise,attention,alert,scene,155,"scene: against the normal-day frame, the flow carries new logs, rocks or mud"
+people,live,2026-10-31T17:33:54.396286Z,112.7,raise,alert,evacuate,agent,155,"agent: Three people are at the water's edge while level is 155cm and rising ~55cm/min with logs now in flow, indicating a fast flood front. With rapid acceleration toward the evacuate line, people need to leave the banks for high ground now."
+debris,rules,2026-10-31T17:37:32.642943Z,80.4,jump,normal,normal,,-14,"the level jumped -57 cm between two frames: the camera may have moved, or a flood front arrived"
+debris,rules,2026-10-31T17:37:37.64516Z,85.4,jump,normal,normal,,91,"the level jumped +105 cm between two frames: the camera may have moved, or a flood front arrived"
+debris,rules,2026-10-31T17:38:22.646337Z,130.4,jump,normal,normal,,222,"the level jumped +103 cm between two frames: the camera may have moved, or a flood front arrived"
+debris,live,2026-10-31T17:37:32.642943Z,80.4,jump,normal,normal,,-14,"the level jumped -57 cm between two frames: the camera may have moved, or a flood front arrived"
+debris,live,2026-10-31T17:37:37.64516Z,85.4,jump,normal,normal,,91,"the level jumped +105 cm between two frames: the camera may have moved, or a flood front arrived"
+debris,live,2026-10-31T17:37:41.488612Z,89.3,raise,normal,alert,scene,-14,"scene: Muse Spark sees building materials, vehicles or animals carried by the water"
+debris,live,2026-10-31T17:37:45.125195Z,92.9,raise,alert,evacuate,agent,-14,"agent: Camera jump with negative level suggests unreliable reading, but the channel is now partly blocked and filled with logs, boulders and building debris with significant danger increase. This indicates a debris dam/flood front scenario that warrants going higher than alert despite no water visible now."
+debris,live,2026-10-31T17:37:52.644405Z,100.4,blind,evacuate,evacuate,,,the camera cannot see the water; the level is kept until it sees again
+debris,live,2026-10-31T17:38:22.646337Z,130.4,jump,evacuate,evacuate,,222,"the level jumped +103 cm between two frames: the camera may have moved, or a flood front arrived"
+debris,live,2026-10-31T17:38:37.644074Z,145.4,blind,evacuate,evacuate,,,the camera cannot see the water; the level is kept until it sees again

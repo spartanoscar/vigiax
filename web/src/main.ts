@@ -188,7 +188,8 @@ async function sendFrame() {
     return;
   }
   await restarted;
-  truth.push({ t: Date.now(), cm: state.levelM * 100 });
+  const truthCm = state.levelM * 100;
+  truth.push({ t: Date.now(), cm: truthCm });
   if (!link.online) return measureOnNode();
   // Signal back: what was kept goes first, so the history stays in order.
   await forward();
@@ -197,15 +198,17 @@ async function sendFrame() {
   const crop = link.mode === "2g" && calib ? cropOf(calib) : null;
   const blob = crop ? await node.jpegCrop(crop) : await node.jpeg();
   const band = localGauge.capture(node.output, calib);
-  let url = `/api/stations/${STATION}/frames`;
+  // The twin's real level goes along, as a gage beside the camera would: it
+  // scores the measurement (eval/), it never feeds the alert.
+  const q = new URLSearchParams({ truth_cm: truthCm.toFixed(1) });
   if (crop) {
-    url += `?crop=${crop.x},${crop.y},${FRAME_W},${FRAME_H}`;
+    q.set("crop", `${crop.x},${crop.y},${FRAME_W},${FRAME_H}`);
     $("send-state").textContent = `Sending the gauge over 2G (${(blob.size / 1024).toFixed(1)} KB)…`;
     await sleep(((blob.size * 8) / BPS_2G) * 1000); // what the link takes to carry it
   } else {
     $("send-state").textContent = "Sending frame…";
   }
-  const res = await fetch(url, { method: "POST", body: blob, headers: { "Content-Type": "image/jpeg" } });
+  const res = await fetch(`/api/stations/${STATION}/frames?${q}`, { method: "POST", body: blob, headers: { "Content-Type": "image/jpeg" } });
   const body = await res.json();
   if (!res.ok) {
     if (res.status === 503) setSending(false, body.error); // out of budget: stop asking

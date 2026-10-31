@@ -1,0 +1,101 @@
+[
+  {
+    "file": "scene/ai/hailuo03-t00.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "AI-generated, second 0 of 10: calm creek",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t01.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "AI-generated, second 1 of 10: calm creek",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t02.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "AI-generated, second 2 of 10: calm creek",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t03.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "AI-generated, second 3 of 10: calm creek",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t04.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "AI-generated, second 4 of 10: muddy flood, no debris",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t05.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "AI-generated, second 5 of 10: muddy flood, no debris",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t06.jpg",
+    "debris_flow": false,
+    "expect": {},
+    "note": "AI-generated, second 6 of 10: muddy flood, no debris",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t07.jpg",
+    "debris_flow": true,
+    "expect": {},
+    "note": "AI-generated, second 7 of 10: debris flow with logs and rocks (labelled a debris flow here; it is a flood carrying debris rather than a mud slurry)",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t08.jpg",
+    "debris_flow": true,
+    "expect": {},
+    "note": "AI-generated, second 8 of 10: debris flow with logs and rocks (labelled a debris flow here; it is a flood carrying debris rather than a mud slurry)",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t09.jpg",
+    "debris_flow": true,
+    "expect": {},
+    "note": "AI-generated, second 9 of 10: debris flow with logs and rocks (labelled a debris flow here; it is a flood carrying debris rather than a mud slurry)",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  },
+  {
+    "file": "scene/ai/hailuo03-t10.jpg",
+    "debris_flow": true,
+    "expect": {},
+    "note": "AI-generated, second 10 of 10: debris flow with logs and rocks (labelled a debris flow here; it is a flood carrying debris rather than a mud slurry)",
+    "source": "AI-generated with Leonardo.ai (Hailuo-03), data/raw/ai/creek-debris-flow-hailuo03-10s.mp4, one frame per second",
+    "license": "AI-generated; see data/manifest.json",
+    "author": "Leonardo.ai, from our prompt"
+  }
+]

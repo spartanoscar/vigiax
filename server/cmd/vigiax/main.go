@@ -2,7 +2,8 @@
 // into a water level, and the dashboard follows the readings over SSE. Live
 // stations (usgs.go) are real webcams the service follows on its own.
 //
-//	POST /api/stations/{id}/frames       JPEG body → reading (?crop=x,y,w,h: only part of the picture)
+//	POST /api/stations/{id}/frames       JPEG body → reading (?crop=x,y,w,h: only part of the picture;
+//	                                     ?truth_cm=: the twin's real level, kept as the reference)
 //	POST /api/stations/{id}/node         readings the node measured itself, 10-byte packets (node.go)
 //	POST /api/stations/{id}/calibration  JPEG body (read the gauge) or JSON two-point calibration
 //	GET  /api/stations                   stations with their last reading and rise rates
@@ -224,6 +225,17 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 		httpError(w, http.StatusBadRequest, err)
 		return
 	}
+	// The twin knows its own water level: kept beside the measurement, as the
+	// official gage is for a real camera, it scores the station (eval/).
+	var truth *float64
+	if v := r.URL.Query().Get("truth_cm"); v != "" {
+		cm, err := strconv.ParseFloat(v, 64)
+		if err != nil || cm < 0 || cm > 1000 {
+			httpError(w, http.StatusBadRequest, errors.New("truth_cm must be 0-1000"))
+			return
+		}
+		truth = &cm
+	}
 	now := time.Now()
 	id := st.Config().ID
 	s.mu.Lock()
@@ -251,7 +263,7 @@ func (s *server) postFrame(w http.ResponseWriter, r *http.Request) {
 		// a crop of the gauge is not one.
 		s.keepFrame(id, img, now)
 	}
-	rd, err := st.MeasureCrop(ctx, s.meta, img, station.Reading{T: now}, crop)
+	rd, err := st.MeasureCrop(ctx, s.meta, img, station.Reading{T: now, RefCm: truth}, crop)
 	s.budget.spend(now, ip, rd.CostUSD)
 	if err != nil {
 		httpError(w, http.StatusBadGateway, err)
