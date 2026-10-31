@@ -194,50 +194,16 @@ func (s *server) runAgent(id string, woke alert.Event) {
 // facts gathers what the agent may know: measurements, the rules, the day.
 func (s *server) facts(st *station.Station, woke alert.Event, now time.Time) agent.Facts {
 	cfg := st.Config()
-	c := alertConfig(cfg)
 	al := s.alerts(cfg.ID)
 	al.mu.Lock()
-	state := al.state
-	var today []alert.Event
-	for _, e := range al.events {
-		if now.Sub(e.T) < 24*time.Hour {
-			today = append(today, e)
-		}
-	}
+	level, events := al.state.Level, append([]alert.Event(nil), al.events...)
 	al.mu.Unlock()
-	if len(today) > 10 {
-		today = today[len(today)-10:]
-	}
-	f := agent.Facts{Station: cfg.ID, Place: c.PlaceEn, Now: now, Woke: woke, RuleLevel: state.Level, History: today}
-	if f.Place == "" {
-		f.Place = c.Place
-	}
-	if r, ok := st.Last(); ok {
-		f.LevelCm = r.LevelCm
-	}
-	// The same rates the rules use: a jump between two frames is left out.
-	if last, ok := st.Last(); ok {
-		f.Rise5 = observe(st, &alert.Config{RiseWindowMin: 5}, last, time.Time{}).RiseCmPerMin
-		f.Rise30 = observe(st, &alert.Config{RiseWindowMin: 30}, last, time.Time{}).RiseCmPerMin
-	}
-	rs := st.Readings(now.Add(-time.Duration(max(c.RiseWindowMin, 5)) * time.Minute))
-	step := max(1, len(rs)/8) // at most about eight points
-	for i := len(rs) - 1; i >= 0; i -= step {
-		if rs[i].LevelCm != nil {
-			f.Recent = append([]agent.Point{{MinutesAgo: round1(now.Sub(rs[i].T).Minutes()), LevelCm: round1(*rs[i].LevelCm)}}, f.Recent...)
-		}
-	}
-	var lines map[string]any
-	b, _ := json.Marshal(map[string]any{"rules": c.Rules, "confirm_readings": c.Confirm, "rise_window_minutes": c.RiseWindowMin})
-	json.Unmarshal(b, &lines)
-	f.Lines = lines
+	f := agent.Gather(st, alertConfig(cfg), level, events, woke, now)
 	if s.subs != nil {
 		f.Subscribers = s.subs.count(cfg.ID, now)
 	}
 	return f
 }
-
-func round1(v float64) float64 { return float64(int(v*10+0.5)) / 10 }
 
 // sceneFrame is the frame Muse Spark reads: the last one posted, if recent,
 // or the live camera's latest photo.

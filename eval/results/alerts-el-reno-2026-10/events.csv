@@ -1,0 +1,21 @@
+mode,time_utc,kind,from,to,by,level_cm,gage_cm,frame,reason
+rules,2026-10-14T16:00:02Z,raise,normal,attention,,291,280,OK_North_Canadian_River_near_El_Reno___2026-10-14T16-00-02Z.jpg,level 291 cm at or above the attention line (250 cm)
+rules,2026-10-14T17:00:03Z,raise,attention,alert,,364,325,OK_North_Canadian_River_near_El_Reno___2026-10-14T17-00-03Z.jpg,level 364 cm at or above the alert line (350 cm)
+rules,2026-10-15T01:00:03Z,blind,alert,alert,,,444,OK_North_Canadian_River_near_El_Reno___2026-10-15T01-00-03Z.jpg,the camera cannot see the water; the level is kept until it sees again
+rules,2026-10-15T16:00:06Z,raise,alert,evacuate,,453,453,OK_North_Canadian_River_near_El_Reno___2026-10-15T16-00-06Z.jpg,level 453 cm at or above the evacuate line (450 cm)
+rules,2026-10-16T00:00:04Z,lower,evacuate,alert,,422,425,OK_North_Canadian_River_near_El_Reno___2026-10-16T00-00-04Z.jpg,level 422 cm at or above the alert line (350 cm) for 120 min
+rules,2026-10-16T01:00:02Z,blind,alert,alert,,,415,OK_North_Canadian_River_near_El_Reno___2026-10-16T01-00-02Z.jpg,the camera cannot see the water; the level is kept until it sees again
+rules,2026-10-17T01:00:03Z,blind,alert,alert,,,358,OK_North_Canadian_River_near_El_Reno___2026-10-17T01-00-03Z.jpg,the camera cannot see the water; the level is kept until it sees again
+rules,2026-10-18T00:00:08Z,lower,alert,attention,,336,309,OK_North_Canadian_River_near_El_Reno___2026-10-18T00-00-08Z.jpg,level 336 cm at or above the attention line (250 cm) for 120 min
+rules,2026-10-18T01:00:03Z,blind,attention,attention,,,299,OK_North_Canadian_River_near_El_Reno___2026-10-18T01-00-03Z.jpg,the camera cannot see the water; the level is kept until it sees again
+rules,2026-10-18T14:00:03Z,lower,attention,normal,,197,208,OK_North_Canadian_River_near_El_Reno___2026-10-18T14-00-03Z.jpg,below every enabled line and rate for 120 min
+agent,2026-10-14T16:00:02Z,raise,normal,attention,,291,280,OK_North_Canadian_River_near_El_Reno___2026-10-14T16-00-02Z.jpg,level 291 cm at or above the attention line (250 cm)
+agent,2026-10-14T16:00:02Z,raise,attention,alert,agent,291,280,OK_North_Canadian_River_near_El_Reno___2026-10-14T16-00-02Z.jpg,"agent: Water is high and muddy filling the channel and rose from 188.4 cm to 290.9 cm in about an hour, indicating a flood front arriving. Raising to alert is needed to keep people away from banks and low crossings."
+agent,2026-10-15T01:00:03Z,blind,alert,alert,,,444,OK_North_Canadian_River_near_El_Reno___2026-10-15T01-00-03Z.jpg,the camera cannot see the water; the level is kept until it sees again
+agent,2026-10-15T16:00:06Z,raise,alert,evacuate,,453,453,OK_North_Canadian_River_near_El_Reno___2026-10-15T16-00-06Z.jpg,level 453 cm at or above the evacuate line (450 cm)
+agent,2026-10-16T00:00:04Z,lower,evacuate,alert,,422,425,OK_North_Canadian_River_near_El_Reno___2026-10-16T00-00-04Z.jpg,level 422 cm at or above the alert line (350 cm) for 120 min
+agent,2026-10-16T01:00:02Z,blind,alert,alert,,,415,OK_North_Canadian_River_near_El_Reno___2026-10-16T01-00-02Z.jpg,the camera cannot see the water; the level is kept until it sees again
+agent,2026-10-17T01:00:03Z,blind,alert,alert,,,358,OK_North_Canadian_River_near_El_Reno___2026-10-17T01-00-03Z.jpg,the camera cannot see the water; the level is kept until it sees again
+agent,2026-10-18T00:00:08Z,lower,alert,attention,,336,309,OK_North_Canadian_River_near_El_Reno___2026-10-18T00-00-08Z.jpg,level 336 cm at or above the attention line (250 cm) for 120 min
+agent,2026-10-18T01:00:03Z,blind,attention,attention,,,299,OK_North_Canadian_River_near_El_Reno___2026-10-18T01-00-03Z.jpg,the camera cannot see the water; the level is kept until it sees again
+agent,2026-10-18T14:00:03Z,lower,attention,normal,,197,208,OK_North_Canadian_River_near_El_Reno___2026-10-18T14-00-03Z.jpg,below every enabled line and rate for 120 min

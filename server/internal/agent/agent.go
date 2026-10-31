@@ -20,6 +20,7 @@ import (
 
 	"github.com/spartanoscar/vigiax/server/internal/alert"
 	"github.com/spartanoscar/vigiax/server/internal/scene"
+	"github.com/spartanoscar/vigiax/server/internal/station"
 )
 
 // Facts is everything the agent knows, all of it measured or configured.
@@ -259,3 +260,46 @@ func knownCm(f Facts) []float64 {
 	walk(f.Lines)
 	return k
 }
+
+// Gather collects what the agent may know at now: the station's latest
+// measurements and rates, its rules, the level the rules hold and the day's
+// events. The caller adds what only it knows (the scene, sign-ups).
+func Gather(st *station.Station, c alert.Config, level alert.Level, events []alert.Event, woke alert.Event, now time.Time) Facts {
+	var today []alert.Event
+	for _, e := range events {
+		if now.Sub(e.T) < 24*time.Hour && !e.T.After(now) {
+			today = append(today, e)
+		}
+	}
+	if len(today) > 10 {
+		today = today[len(today)-10:]
+	}
+	f := Facts{Station: st.Config().ID, Place: c.PlaceEn, Now: now, Woke: woke, RuleLevel: level, History: today}
+	if f.Place == "" {
+		f.Place = c.Place
+	}
+	rs := st.Readings(now.Add(-time.Duration(max(c.RiseWindowMin, 5)) * time.Minute))
+	for len(rs) > 0 && rs[len(rs)-1].T.After(now) { // a replay holds readings from later on
+		rs = rs[:len(rs)-1]
+	}
+	if len(rs) > 0 {
+		last := rs[len(rs)-1]
+		f.LevelCm = last.LevelCm
+		// The same rates the rules use: a jump between two frames is left out.
+		f.Rise5 = st.Observe(&alert.Config{RiseWindowMin: 5}, last, time.Time{}).RiseCmPerMin
+		f.Rise30 = st.Observe(&alert.Config{RiseWindowMin: 30}, last, time.Time{}).RiseCmPerMin
+	}
+	step := max(1, len(rs)/8) // at most about eight points
+	for i := len(rs) - 1; i >= 0; i -= step {
+		if rs[i].LevelCm != nil {
+			f.Recent = append([]Point{{MinutesAgo: round1(now.Sub(rs[i].T).Minutes()), LevelCm: round1(*rs[i].LevelCm)}}, f.Recent...)
+		}
+	}
+	var lines map[string]any
+	b, _ := json.Marshal(map[string]any{"rules": c.Rules, "confirm_readings": c.Confirm, "rise_window_minutes": c.RiseWindowMin})
+	json.Unmarshal(b, &lines)
+	f.Lines = lines
+	return f
+}
+
+func round1(v float64) float64 { return float64(int(v*10+0.5)) / 10 }
