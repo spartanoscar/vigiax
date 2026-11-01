@@ -110,8 +110,24 @@ func messages(c *alert.Config, e alert.Event) alertMessage {
 
 // checkAlerts runs the rules on a new reading and sends what changes.
 func (s *server) checkAlerts(st *station.Station, rd station.Reading) {
-	if e, c := s.stepAlerts(st, rd); e != nil {
-		s.announce(st.Config().ID, c, *e)
+	id := st.Config().ID
+	a := s.alerts(id)
+	a.mu.Lock()
+	wasBlind := a.state.Blind
+	a.mu.Unlock()
+	e, c := s.stepAlerts(st, rd)
+	if e != nil {
+		s.announce(id, c, *e)
+		return
+	}
+	a.mu.Lock()
+	blind, level := a.state.Blind, a.state.Level
+	a.mu.Unlock()
+	// The camera stopped seeing the water with nothing raised. A debris flow does
+	// that (mud is not water to SAM), so the agent looks at the scene; nobody is
+	// told unless it, or the scene rules, raise the level.
+	if !wasBlind && blind && level == alert.Normal {
+		go s.wakeAgent(id, alert.Event{T: rd.T, Kind: "blind", From: level, To: level, Reason: "the camera stopped seeing the water"})
 	}
 }
 
@@ -162,9 +178,17 @@ func (s *server) checkPlacement(cfg station.Config, now time.Time) {
 		log.Printf("%s: gauge check: %v", cfg.ID, err)
 		return
 	}
+	a := s.alerts(cfg.ID)
+	a.mu.Lock()
+	flood := a.state.Level >= alert.Alert
+	a.mu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	switch {
+	case !p.Found && flood:
+		// In a flood already raised, a gauge that vanished is under the water or
+		// the debris, not elsewhere: readings go on and the level is kept.
+		delete(s.moved, cfg.ID)
 	case !p.Found:
 		s.moved[cfg.ID] = "after a jump in the level the gauge cannot be found in the frame: the camera moved or something covers it"
 	case p.Moved:

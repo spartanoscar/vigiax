@@ -126,6 +126,21 @@ func TestMessage(t *testing.T) {
 	}
 }
 
+// A broken reading (below the gauge zero, after a level jump in mud) is not
+// sent as a water level: people would read "-1.4 m".
+func TestMessageHidesBrokenLevel(t *testing.T) {
+	c := TwinDefaults()
+	lv := -138.0
+	e := Event{T: t0, Kind: "raise", From: Alert, To: Evacuate, LevelCm: &lv, By: "agent"}
+	en := Text(Fill(&c, e, "en"), "en")
+	if strings.Contains(en, "-1.4") || !strings.Contains(en, "What is happening: The camera's level reading is not reliable right now.") {
+		t.Fatalf("en:\n%s", en)
+	}
+	if es := Text(Fill(&c, e, "es"), "es"); strings.Contains(es, "-1,4") || !strings.Contains(es, "no es confiable") {
+		t.Fatalf("es:\n%s", es)
+	}
+}
+
 func TestMovedCameraKeepsTheLevelUntilBack(t *testing.T) {
 	c := TwinDefaults()
 	s := State{Level: Attention}

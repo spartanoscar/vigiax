@@ -121,7 +121,15 @@ func facts(c *Config, e Event, en bool) string {
 			parts = append(parts, "El agua sube "+rs)
 		}
 	}
-	if e.LevelCm != nil {
+	if e.LevelCm != nil && *e.LevelCm < 0 {
+		// Below the gauge zero is not water anyone can see: the reading broke (a
+		// level jump, mud the camera cannot tell from the bed). Say so, not the number.
+		if en {
+			parts = append(parts, "The camera's level reading is not reliable right now")
+		} else {
+			parts = append(parts, "La lectura de nivel de la cámara no es confiable ahora")
+		}
+	} else if e.LevelCm != nil {
 		m := *e.LevelCm / 100
 		switch {
 		case en && len(parts) > 0:
