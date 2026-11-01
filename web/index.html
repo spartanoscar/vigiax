@@ -27,7 +27,7 @@
     <meta name="twitter:description" content="SAM 3.1 measures the stream; an agent warns the village on WhatsApp before the flood arrives. Try the live twin." />
     <meta name="twitter:image" content="https://vigiax.bukivo.com/og.png" />
 
-    <link rel="preload" href="/img/twin-hero.webp" as="image" type="image/webp" fetchpriority="high" />
+    <link rel="preload" href="/img/video-poster.webp" as="image" type="image/webp" fetchpriority="high" />
 
     <script type="application/ld+json">
       [
@@ -165,24 +165,26 @@
                 <i></i><i></i><i></i>
                 <span>vigiax.bukivo.com/twin</span>
               </div>
-              <img
-                src="/img/twin-hero.webp"
-                alt="The Vigiax digital twin: a mountain stream in 3D, the camera node's view with the waterline found by SAM 3.1, and the measured level next to the true level."
-                width="1568"
-                height="773"
-                fetchpriority="high"
-              />
+              <!-- The demo video, muted until the visitor turns the sound on. It is not in the
+                   repository (*.mp4 is ignored); it is deployed with the site. -->
+              <video
+                id="hero-video"
+                src="/video/vigiax-demo.mp4"
+                poster="/img/video-poster.webp"
+                aria-label="Vigiax demo video, 2.5 minutes, with subtitles"
+                width="1280"
+                height="720"
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="metadata"
+              ></video>
             </figure>
-            <div class="float-alert" aria-label="Example alert">
-              <div class="fa-head">
-                <span class="fa-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><path d="M12 3l9.5 17h-19z" /><path d="M12 10v4M12 17.2v.1" /></svg>
-                </span>
-                <strong>Vigiax · La Honda Creek</strong>
-                <time>now</time>
-              </div>
-              <p>The creek rose <b>25 cm in 10 min</b> and is carrying mud. Move away from the bank now and warn your neighbours.</p>
-            </div>
+            <button class="hero-sound" id="hero-sound" type="button" aria-pressed="false">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
+              <span>Turn on sound</span>
+            </button>
           </div>
         </div>
       </section>

@@ -38,6 +38,30 @@ if ("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: re
   document.documentElement.classList.add("js");
 }
 
+// The demo video plays muted in the hero. Turning the sound on the first time
+// starts it over, so the voice-over is heard from its first line. Visitors who
+// ask for less motion or less data get the poster and press play themselves.
+const video = document.getElementById("hero-video") as HTMLVideoElement;
+const sound = document.getElementById("hero-sound")!;
+const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+if (saveData || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  video.removeAttribute("autoplay");
+  video.pause();
+  video.controls = true;
+}
+let heard = false;
+sound.addEventListener("click", () => {
+  const on = video.muted;
+  video.muted = !on;
+  if (on && !heard) {
+    heard = true;
+    video.currentTime = 0;
+  }
+  if (on) void video.play();
+  sound.setAttribute("aria-pressed", String(on));
+  sound.querySelector("span")!.textContent = on ? "Mute" : "Turn on sound";
+});
+
 // WhatsApp sign-up for this visitor's own twin station: the same id the twin
 // uses, so the alert that arrives is the flood this visitor triggers.
 const WA = "573001128564";
