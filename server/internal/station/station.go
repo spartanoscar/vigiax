@@ -191,6 +191,7 @@ func (s *Station) MeasureCrop(ctx context.Context, c *meta.Client, jpeg []byte, 
 		cal.ColX1 -= crop.X
 		cal.ColX2 -= crop.X
 		cal.ZeroY -= float64(crop.Y)
+		cal.ColY -= float64(crop.Y)
 		cfg.Calib = &cal
 	}
 	r, err := sam.Segment(ctx, c, jpeg, cfg.Prompt)
@@ -225,13 +226,15 @@ func (s *Station) MeasureCrop(ctx context.Context, c *meta.Client, jpeg []byte, 
 		}
 		rd.Coverage = area / float64(r.FrameW*r.FrameH)
 		x0, x1, yMin := 0, r.FrameW-1, 0
+		slope, refY := 0.0, 0.0
 		if cfg.Calib != nil {
 			x0, x1 = cfg.Calib.ColX1, cfg.Calib.ColX2
+			slope, refY = cfg.Calib.Slope, cfg.Calib.ColY
 			if top, ok := cfg.Calib.TopY(); ok {
 				yMin = int(top) + topMargin
 			}
 		}
-		if y, ok := r.WaterlineBelow(x0, x1, yMin); ok {
+		if y, ok := r.WaterlineAlong(x0, x1, slope, refY, yMin); ok {
 			rd.AtTop = yMin > 0 && y <= yMin+1
 			rd.WaterlineY = &y
 			if cfg.Calib != nil {

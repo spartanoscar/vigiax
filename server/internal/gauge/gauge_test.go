@@ -73,3 +73,27 @@ func TestTwoPoint(t *testing.T) {
 		t.Fatal("accepted a higher value lower in the frame")
 	}
 }
+
+// A gauge seen from the bank leans in the picture: its box is wide, the gauge
+// fills it only along a diagonal, and the columns follow that diagonal.
+func TestFitLeaningGauge(t *testing.T) {
+	box := sam.Box{X1: 100, Y1: 100, X2: 300, Y2: 700}
+	var ls []Label
+	for i := 0; i < 5; i++ {
+		y := 150 + float64(i)*100
+		ls = append(ls, Label{Value: float64(5 - i), Unit: "M", X: 125 + 0.25*(y-100), Y: y})
+	}
+	c, err := Fit(ls, box)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(c.Slope-0.25) > 1e-9 || c.ColX1 != 175 || c.ColX2 != 225 || c.ColY != 400 {
+		t.Fatalf("got slope %.3f, columns %d-%d at row %.0f", c.Slope, c.ColX1, c.ColX2, c.ColY)
+	}
+	if x1, x2 := c.ColsAt(100); x1 != 100 || x2 != 150 {
+		t.Fatalf("columns at the top: %.0f-%.0f", x1, x2)
+	}
+	if x1, x2 := c.ColsAt(700); x1 != 250 || x2 != 300 {
+		t.Fatalf("columns at the bottom: %.0f-%.0f", x1, x2)
+	}
+}

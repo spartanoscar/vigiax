@@ -31,10 +31,12 @@ type Calibration struct {
 	PxPerUnit float64  `json:"px_per_unit"`
 	ZeroY     float64  `json:"zero_y"`
 	Unit      string   `json:"unit"`   // FT, M or CM
-	ColX1     int      `json:"col_x1"` // gauge columns, where the waterline is read
+	ColX1     int      `json:"col_x1"` // gauge columns, where the waterline is read, at row ColY
 	ColX2     int      `json:"col_x2"`
-	Source    string   `json:"source"` // "labels" or "manual"
-	RMSE      float64  `json:"rmse"`   // fit residual, in gauge units
+	ColY      float64  `json:"col_y,omitempty"`
+	Slope     float64  `json:"slope,omitempty"` // the gauge's lean in the picture: columns shift Slope px per row down
+	Source    string   `json:"source"`          // "labels" or "manual"
+	RMSE      float64  `json:"rmse"`            // fit residual, in gauge units
 	Labels    []Label  `json:"labels,omitempty"`
 	Top       *float64 `json:"top,omitempty"` // highest value on the gauge: the waterline is not searched above it
 }
@@ -45,6 +47,13 @@ func (c *Calibration) TopY() (float64, bool) {
 		return 0, false
 	}
 	return c.ZeroY - *c.Top*c.PxPerUnit, true
+}
+
+// ColsAt is where the gauge columns are at frame row y: a gauge seen from above
+// or from the side leans in the picture.
+func (c *Calibration) ColsAt(y float64) (x1, x2 float64) {
+	d := c.Slope * (y - c.ColY)
+	return float64(c.ColX1) + d, float64(c.ColX2) + d
 }
 
 // Value is the gauge reading at frame row y.
@@ -116,6 +125,7 @@ func Fit(labels []Label, gaugeBox sam.Box) (*Calibration, error) {
 		Unit:      strings.ToUpper(ls[0].Unit),
 		ColX1:     gaugeBox.X1,
 		ColX2:     gaugeBox.X2,
+		ColY:      float64(gaugeBox.Y1+gaugeBox.Y2) / 2,
 		Source:    "labels",
 		RMSE:      math.Sqrt(sse / n),
 		Labels:    ls,
@@ -125,7 +135,35 @@ func Fit(labels []Label, gaugeBox sam.Box) (*Calibration, error) {
 	}
 	top := c.Value(float64(gaugeBox.Y1)) // the top of the gauge SAM found
 	c.Top = &top
+	lean(c, ls, gaugeBox)
 	return c, nil
+}
+
+// lean fits the line the printed numbers follow down the gauge (x against the
+// row). A gauge that leans in the picture fills its box only along a diagonal:
+// the columns become the gauge's own width around that line, centred on the
+// box at its middle row.
+func lean(c *Calibration, ls []Label, box sam.Box) {
+	n := float64(len(ls))
+	var sy, sx, syy, syx float64
+	for _, l := range ls {
+		sy += l.Y
+		sx += l.X
+		syy += l.Y * l.Y
+		syx += l.Y * l.X
+	}
+	d := n*syy - sy*sy
+	if d == 0 {
+		return
+	}
+	slope := (n*syx - sy*sx) / d
+	h, w := float64(box.Y2-box.Y1), float64(box.X2-box.X1)
+	if math.Abs(slope) < 0.02 || math.Abs(slope)*h >= w {
+		return // upright, or the numbers do not follow a line inside the box
+	}
+	cx, half := float64(box.X1+box.X2)/2, (w-math.Abs(slope)*h)/2
+	c.Slope = slope
+	c.ColX1, c.ColX2 = int(math.Round(cx-half)), int(math.Round(cx+half))
 }
 
 // TwoPoint builds a calibration from two rows with known values, for gauges the
@@ -242,7 +280,8 @@ func Check(ctx context.Context, c *meta.Client, jpeg []byte, cal *Calibration) (
 	}
 	p.Found = true
 	width := float64(cal.ColX2 - cal.ColX1)
-	p.ShiftX = float64(best.Box.X1+best.Box.X2)/2 - float64(cal.ColX1+cal.ColX2)/2
+	x1, x2 := cal.ColsAt(float64(best.Box.Y1+best.Box.Y2) / 2)
+	p.ShiftX = float64(best.Box.X1+best.Box.X2)/2 - (x1+x2)/2
 	tol := math.Max(20, width*1.5)
 	if top, ok := cal.TopY(); ok {
 		p.ShiftY = float64(best.Box.Y1) - top

@@ -282,6 +282,7 @@ type twoPoint struct {
 	Y1, V1, Y2, V2 float64
 	Unit           string
 	X1, X2         int
+	ColY, Slope    float64  // the row X1, X2 are at and the gauge's lean, optional
 	Top            *float64 // highest value on the gauge, optional
 }
 
@@ -308,6 +309,9 @@ func (s *server) postCalibration(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		cal, err = gauge.TwoPoint(p.Y1, p.V1, p.Y2, p.V2, p.Unit, p.X1, p.X2)
+		if err == nil {
+			cal.ColY, cal.Slope = p.ColY, p.Slope
+		}
 		if err == nil && p.Top != nil {
 			cal.Top = p.Top
 		}

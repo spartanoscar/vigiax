@@ -5,6 +5,7 @@ package sam
 import (
 	"context"
 	"fmt"
+	"math"
 	"regexp"
 	"slices"
 	"strconv"
@@ -97,15 +98,22 @@ func (r *Result) Waterline(x0, x1 int) (y int, ok bool) { return r.WaterlineBelo
 // of a gauge, the columns cross the far side of the stream, whose water is not
 // the water at the gauge.
 func (r *Result) WaterlineBelow(x0, x1, yMin int) (y int, ok bool) {
+	return r.WaterlineAlong(x0, x1, 0, 0, yMin)
+}
+
+// WaterlineAlong is WaterlineBelow over columns that lean: x0..x1 at row refY,
+// shifted slope px per row below it (a gauge leaning in the picture).
+func (r *Result) WaterlineAlong(x0, x1 int, slope, refY float64, yMin int) (y int, ok bool) {
 	var tops []int
-	for x := max(x0, 0); x <= min(x1, r.FrameW-1); x++ {
+	for k := 0; k <= x1-x0; k++ {
 		top := -1
 		for i := range r.Objects {
 			o := &r.Objects[i]
-			if x < o.Box.X1 || x > o.Box.X2 {
-				continue
-			}
 			for y := max(o.Box.Y1, yMin); y <= o.Box.Y2 && (top < 0 || y < top); y++ {
+				x := x0 + k + int(math.Round(slope*(float64(y)-refY)))
+				if x < o.Box.X1 || x > o.Box.X2 || x < 0 || x >= r.FrameW {
+					continue
+				}
 				if o.At(x, y) {
 					top = y
 					break
