@@ -99,7 +99,7 @@
         <p class="sam-kicker">SAM 3.1 · <span id="sam-engine">every 5 s</span></p>
         <div class="sam-layers" role="group" aria-label="Layers">
           <label class="layer-chip water"><input type="checkbox" data-layer="water" checked />Water</label>
-          <label class="layer-chip things"><input type="checkbox" data-layer="things" checked />People and logs</label>
+          <label class="layer-chip things" title="SAM 3.1 finds people and logs with the live GPU. Without it, Muse Spark reads them when something changes."><input type="checkbox" data-layer="things" checked />People and logs</label>
           <label class="layer-chip lines"><input type="checkbox" data-layer="lines" checked />Gauge</label>
         </div>
         <dl class="sam-stats">
@@ -224,15 +224,15 @@
         <div class="field">
           <span class="field-k" id="people-k">People near the water</span>
           <div class="seg-pick" role="radiogroup" aria-labelledby="people-k" data-for="people">
-            <button type="button" role="radio" data-v="0" aria-checked="true">None</button>
+            <button type="button" role="radio" data-v="0" aria-checked="false">None</button>
             <button type="button" role="radio" data-v="1" aria-checked="false">1</button>
-            <button type="button" role="radio" data-v="2" aria-checked="false">2</button>
+            <button type="button" role="radio" data-v="2" aria-checked="true">2</button>
             <button type="button" role="radio" data-v="3" aria-checked="false">3</button>
           </div>
           <select id="people" class="sr-only" tabindex="-1" aria-hidden="true">
-            <option value="0" selected>None</option>
+            <option value="0">None</option>
             <option value="1">1</option>
-            <option value="2">2</option>
+            <option value="2" selected>2</option>
             <option value="3">3</option>
           </select>
         </div>
@@ -409,7 +409,6 @@
       </svg>
       <div class="sam-stage" id="sam-stage">
         <canvas id="sam-video" aria-label="What the camera node sees"></canvas>
-        <img id="sam-photo" alt="The last photo of the USGS camera on the North Canadian River" />
         <canvas id="sam-water" class="layer-water" aria-hidden="true"></canvas>
         <canvas id="sam-things" class="layer-things" aria-hidden="true"></canvas>
         <canvas id="sam-tags" class="layer-things" aria-hidden="true"></canvas>

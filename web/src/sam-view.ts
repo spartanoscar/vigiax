@@ -3,7 +3,7 @@ import { events } from "./events";
 import { STATION } from "./station";
 import { GAUGE_HEIGHT } from "./world";
 import { FRAME_W, FRAME_H } from "./camera-node";
-import { link } from "./network";
+import { link, colsAt } from "./network";
 
 // The "SAM view", the twin's first view: the screen shows the camera node's
 // picture, with what SAM 3.1 finds on it drawn on top, like layers on a map: the
@@ -17,7 +17,7 @@ import { link } from "./network";
 // itself comes from that measurement, never from this view. The 3D view, to walk
 // around the valley, is one button away.
 
-type Calibration = { px_per_unit: number; zero_y: number; unit: string; col_x1: number; col_x2: number; top?: number };
+type Calibration = { px_per_unit: number; zero_y: number; unit: string; col_x1: number; col_x2: number; col_y?: number; slope?: number; top?: number };
 type Reading = { t: string; level_cm?: number; waterline_y?: number; coverage: number; confidence: number; sam_ms: number; blind?: boolean };
 type Summary = { id: string; calibration?: Calibration; last?: Reading; rating?: object };
 type Measured = { view: { t: string; prompt: string; objects: number }; frame: string; mask: string; station: Summary };
@@ -465,8 +465,10 @@ async function paintLive(layers: Layers, live: Live, twin: boolean) {
     const s = w / FRAME_W;
     const top = c.top != null ? (c.zero_y - c.top * c.px_per_unit) * s + 4 * s : 0;
     const tops: number[] = [];
-    for (let x = Math.round(c.col_x1 * s); x <= Math.round(c.col_x2 * s); x++) {
+    for (let k = 0; k <= Math.round((c.col_x2 - c.col_x1) * s); k++) {
       for (let y = Math.max(0, Math.ceil(top)); y < h; y++) {
+        const x = Math.round(colsAt(c, y / s).x1 * s) + k;
+        if (x < 0 || x >= w) continue;
         if (waterMasks.some((m) => m.on[y * w + x])) {
           tops.push(y);
           break;
@@ -496,9 +498,21 @@ function drawLines() {
   g.strokeStyle = "rgba(255,255,255,.95)";
   g.lineWidth = 2.5;
   g.setLineDash([9, 7]);
-  g.strokeRect(c.col_x1 - 6, top, c.col_x2 - c.col_x1 + 12, bottom - top);
+  const a = colsAt(c, top), b = colsAt(c, bottom);
+  g.beginPath();
+  g.moveTo(a.x1 - 6, top);
+  g.lineTo(a.x2 + 6, top);
+  g.lineTo(b.x2 + 6, bottom);
+  g.lineTo(b.x1 - 6, bottom);
+  g.closePath();
+  g.stroke();
   g.setLineDash([]);
-  const x0 = c.col_x1 - 70, x1 = c.col_x2 + 40;
+  // Each waterline spans the gauge where it crosses it.
+  const ends = (y: number) => {
+    const cs = colsAt(c, y);
+    return [cs.x1 - 70, cs.x2 + 40];
+  };
+  let [x0, x1] = ends(nodeY ?? liveY ?? r?.waterline_y ?? c.zero_y);
   if (!link.online) {
     // The node's own reading, in its colour, with where it comes from.
     if (nodeY == null) return;
@@ -522,6 +536,7 @@ function drawLines() {
     return;
   }
   if (liveY != null) {
+    [x0, x1] = ends(liveY);
     g.strokeStyle = "rgba(255,255,255,.9)";
     g.lineWidth = 2;
     g.beginPath();
@@ -531,6 +546,7 @@ function drawLines() {
   }
   if (r?.waterline_y != null && fresh(r)) {
     const y = r.waterline_y;
+    [x0, x1] = ends(y);
     g.strokeStyle = "#ffd23f";
     g.lineWidth = 4;
     g.beginPath();
@@ -569,7 +585,9 @@ function stats() {
   $("sam-engine").textContent = live ? `live · ${(stamps.length / 4).toFixed(1)} frames/s` : gpu === "off" || gpu === "error" ? "every 5 s" : "GPU starting…";
   const c = station?.calibration;
   $("sam-live-level").textContent = liveY != null && c ? `${Math.round(((c.zero_y - liveY) / c.px_per_unit) * (UNIT_CM[c.unit] ?? 100))} cm` : "–";
-  $("sam-found").textContent = found.length ? found.map((f) => `${f.n} ${NAMES[f.label]?.[f.n === 1 ? 0 : 1] ?? f.label}`).join(" · ") : live ? "nothing" : "–";
+  // Every 5 s SAM 3.1 is asked for the water only (one concept per image, each
+  // one paid); people and logs are segmented with the live GPU.
+  $("sam-found").textContent = found.length ? found.map((f) => `${f.n} ${NAMES[f.label]?.[f.n === 1 ? 0 : 1] ?? f.label}`).join(" · ") : live ? "nothing" : "with the live GPU";
   const r = station?.last;
   $("sam-speed").textContent = live && last ? `${Math.round(last.result.ms)} ms GPU · ${last.round_trip_ms} ms trip` : r ? `${r.sam_ms} ms per frame (Meta Model API)` : "–";
   $("sam-note").textContent = live

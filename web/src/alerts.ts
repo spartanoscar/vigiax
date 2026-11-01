@@ -306,6 +306,8 @@ function toast(a: AlertMsg) {
   const el = document.createElement("div");
   el.className = "toast glass";
   el.dataset.level = a.event.kind === "blind" ? a.event.from : a.event.to;
+  el.dataset.kind = a.event.kind;
+  el.dataset.station = a.station;
   el.setAttribute("role", "alert");
   el.innerHTML = `<div class="toast-head"><span class="level-badge"></span><span class="toast-where"></span><time></time></div><p class="toast-msg"></p><div class="toast-actions"></div>`;
   badge(el.querySelector(".level-badge")!, el.dataset.level as Level);
@@ -330,6 +332,11 @@ function toast(a: AlertMsg) {
   } else {
     button("Close", () => el.remove());
   }
+  // One notice per station: the newest replaces the last, except that "the camera
+  // cannot see" never covers a raise still waiting for an answer.
+  const prev = [...$("toasts").children].find((t) => (t as HTMLElement).dataset.station === a.station) as HTMLElement | undefined;
+  if (prev && a.event.kind === "blind" && prev.dataset.kind === "raise") return;
+  prev?.remove();
   $("toasts").prepend(el);
   while ($("toasts").children.length > 3) $("toasts").lastElementChild!.remove();
 }

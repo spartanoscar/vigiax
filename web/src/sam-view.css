@@ -65,6 +65,9 @@ body[data-sam="live"] .sam-kicker::before { content: ""; width: 8px; height: 8px
 .sam-stats dd { margin: 3px 0 0; font: 700 16px/1.2 var(--display); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sam-stats .wide dd { font-size: 14px; }
 .sam-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+/* Without the GPU only the water is segmented: the people layer has nothing to show. */
+body[data-sam="measured"] .layer-chip.things { opacity: 0.5; }
+body[data-sam="measured"] #sam-found { font-size: 13px; font-weight: 600; color: var(--muted); }
 
 @media (max-width: 760px) {
   .layer-pill { padding: 0 11px; }
