@@ -1,0 +1,14 @@
+run,mode,time_utc,seconds_from_start,kind,from,to,by,level_cm,reason
+plain,rules,2026-11-01T06:19:36.251111Z,105.3,raise,normal,attention,,158,"level 146 cm at or above the attention line (100 cm); past the evacuate line too, raised there once confirmed (one level at a time)"
+plain,rules,2026-11-01T06:19:51.251927Z,120.3,raise,attention,evacuate,,212,"rising 79.3 cm/min, at or above the evacuate rate (6.0 cm/min)"
+plain,live,2026-11-01T06:19:36.251111Z,105.3,raise,normal,attention,,158,"level 146 cm at or above the attention line (100 cm); past the evacuate line too, raised there once confirmed (one level at a time)"
+plain,live,2026-11-01T06:19:40.877458Z,110.0,raise,attention,alert,scene,158,"scene: against the normal-day frame, the flow carries new logs, rocks or mud"
+plain,live,2026-11-01T06:19:44.243858Z,113.3,raise,alert,evacuate,agent,158,"agent: Water rose from ~42 cm to 158 cm in under two minutes with an extreme rise rate near 59 cm/min, and the channel now carries logs where it was previously lower. The next evacuate line is near and would be reached in under two minutes at this rate, requiring immediate higher alert."
+people,rules,2026-11-01T06:15:31.767846Z,105.4,raise,normal,attention,,158,"level 143 cm at or above the attention line (100 cm); past the evacuate line too, raised there once confirmed (one level at a time)"
+people,rules,2026-11-01T06:15:46.749885Z,120.4,raise,attention,evacuate,,212,"rising 78.4 cm/min, at or above the evacuate rate (6.0 cm/min)"
+people,live,2026-11-01T06:15:31.767846Z,105.4,raise,normal,attention,,158,"level 143 cm at or above the attention line (100 cm); past the evacuate line too, raised there once confirmed (one level at a time)"
+people,live,2026-11-01T06:15:35.910737Z,109.6,raise,attention,alert,scene,158,"scene: against the normal-day frame, the flow carries new logs, rocks or mud"
+people,live,2026-11-01T06:15:38.64846Z,112.3,raise,alert,evacuate,agent,158,agent: One person is on the bank while water is rising very fast toward the alert line. Raising to evacuate protects life with water well above normal and a continued rapid rise.
+debris,live,2026-11-01T06:10:46.745413Z,65.2,raise,normal,alert,scene,,"scene: against the normal-day frame, the channel is partly blocked: possible damming"
+debris,live,2026-11-01T06:10:46.95573Z,65.4,blind,alert,alert,,,the camera cannot see the water; the level is kept until it sees again
+debris,live,2026-11-01T06:10:56.296379Z,74.7,raise,alert,evacuate,scene,,scene: Muse Spark sees a debris flow (thick mud carrying rocks or trees)

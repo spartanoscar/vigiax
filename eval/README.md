@@ -37,7 +37,7 @@ Readings and agent runs are cached in `data/raw/usgs/`; a rerun from the cache c
 are cached as given, because a new run of a language model can answer differently. This is one flood seen at one
 photo an hour: the times are good to about an hour, and the agent's earlier alert is one case, not a rate.
 
-## Digital twin: how early the alert goes out, rules alone and with the agent — `results/twin-2026-10/`
+## Digital twin: how early the alert goes out, rules alone and with the agent — `results/twin-2026-11/`
 
 **Simulated.** Three runs of the digital twin through the service as in production (SAM 3.1 on each frame every 5 s,
 the rules, Muse Spark on the scene and Muse Spark Open deciding), each a calm start and then a 2-minute flash flood:
@@ -48,11 +48,22 @@ replayed on the same readings with the same code.
 ```sh
 # the service and the twin running locally (server/cmd/vigiax, web/), one twin station per run, then:
 cd server
-go run ./cmd/evaltwin -data $DATA_DIR/stations -runs plain=twin-evpla1,people=twin-evppl1,debris=twin-evdeb1 \
-  -out ../eval/results/twin-2026-10
+go run ./cmd/evaltwin -data $DATA_DIR/stations -runs plain=twin-evpla6,people=twin-evppl6,debris=twin-evdeb6 \
+  -out ../eval/results/twin-2026-11
 ```
 
-One run per case: the language models can answer differently on another run.
+Result: evacuate went out 22 s (flood alone) and 23 s (people on the bank) before the water reached the line, 7 and
+8 s ahead of the rules alone; in the debris flow the rules alone never raised, and the scene reading raised evacuate
+61 s before the flow reached the line.
+
+One run per case: the language models can answer differently on another run, and SAM's reading of the mud varies
+too. In a debris-flow run on production (station `twin-vdeb01`, 31 Oct) SAM read the mud rising at 29 cm/min and the
+rules alone raised evacuate 70 s after the flood was triggered; then the camera went blind and the agent held
+evacuate.
+
+`results/twin-2026-10/` is the same evaluation on the twin of 31 Oct (camera closer to the gauge, before the footpaths,
+the walkers and the bridge). A camera that went blind with nothing raised woke nobody then; it now wakes the agent,
+and a gauge that vanishes during a raised flood counts as covered, not as a moved camera.
 
 ## Scene reading on an AI-generated clip — `results/scene-ai-2026-10/`
 

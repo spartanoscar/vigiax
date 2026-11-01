@@ -11,28 +11,31 @@ slides. Most of the video is real screen footage of the product, with the live M
 with one line on what existed before the event and what was built during it. A simulator is fine if it is labeled
 as one. A voice presented by a person is preferred over an AI voice.
 
-Every number on screen comes from a run in `eval/` or from the live product. The ones marked **[eval]** are
-measured on Saturday; until then they stay out of the cut. Any AI-generated clip (context shots only: a mountain
-village, rain, a swollen creek) is labeled "AI-generated" on screen. It never stands in for the product or for a
-real event.
+Every number on screen comes from a run in `eval/` or from the live product (measured on 31 Oct; sources in the
+last column). The AI-generated creek clip (Leonardo.ai) is a context shot only, labeled "AI-generated (Leonardo.ai)"
+on screen; it never stands in for the product or for a real event. Twin footage is captioned "Simulated". Long runs
+are sped up on screen, as the organizers allow.
 
 ## Submission video (3:00)
 
-| Time | Picture | Voice-over (and subtitles) |
-|---|---|---|
-| 0:00–0:08 | Title over the SAM view, mask on the water | "Nothing existed before this hackathon: all of Vigiax was built during it. Flash-flood early warning from any camera." |
-| 0:08–0:30 | Context shots (labeled if AI-generated), with the source as a one-line caption, no card | "In Colombia, flash floods come down mountain creeks in minutes. Medellín has about 4,200 creeks and fewer than 30 level sensors. When the water rises, someone still goes to look." (source on screen: SIATA, minuto30.com) |
-| 0:30–0:45 | The twin opens, captioned "Simulated creek (digital twin)": camera watching, SAM 3.1 mask, yellow waterline at the gauge | "Vigiax turns a camera into a river gauge. Every 5 seconds SAM 3.1, on the Meta Model API, finds the water and the service reads the level where it meets the gauge." |
-| 0:45–1:05 | Judge code → Turn on (the 30–120 s start-up is cut) → masks move with the water; people and logs boxed | "Without a GPU, Vigiax sends one photo at a time. Turn one on and open-weights SAM 3.1 follows the water live: people on the bank, logs coming down." |
-| 1:05–1:35 | Flash flood (1 min): water rises, steps light up, attention → alert → evacuate within a minute; agent console explains, each model call with its tokens and cost | "A flash flood. The rules raise the alert as the water crosses each line. When the level changes, Muse Spark reads the scene and an agent on Muse Spark Open, the open-weights model served on Baseten, decides the level and explains why; a verifier checks every number it cites." |
-| 1:35–1:50 | Phone: the WhatsApp alert arrives | "The alert reaches the people downstream on WhatsApp, in plain words, from fixed templates filled with measured values." |
-| 1:50–2:15 | El Reno, before and at the peak, with the SAM mask; gage numbers next to SAM's | "Same pipeline on a real river: a USGS webcam in Oklahoma. Through a 3.66-meter flood, SAM 3.1 read the level with a mean error of 6.9 centimeters against the official gage, on frames it never saw while calibrating." |
-| 2:15–2:35 | Network selector: 2G / offline / LoRa; bytes sent; local siren | "Mountain villages lose signal first. The node measures on site, sounds a local siren without internet, and sends numbers, not video: **[bytes per reading]** bytes per reading." |
-| 2:35–2:50 | Agent console: model, tokens and USD of each call, and the day's spend in the header (real product, no card) | "SAM 3.1 measures, Muse Spark reads the scene, Muse Spark Open decides. The cheap loop runs always; the language models wake only when something changes: **[eval: cost per station per day]**." |
-| 2:50–3:00 | URL and QR to the live twin | "Any camera. Any creek. Minutes before the water. Try it live at vigiax.bukivo.com." |
 
-Lines to add after Saturday, if the numbers hold: lead time against the rules alone **[eval: minutes]** and false
-alarms on calm days **[eval: count over N days]**.
+| Time | Picture | Voice-over (and subtitles) | Source |
+|---|---|---|---|
+| 0:00–0:10 | Title over the SAM view, mask on the water | "Nothing existed before this hackathon: all of Vigiax was built during it. Flash-flood early warning from any camera." | — |
+| 0:10–0:25 | AI-generated creek clip, 30-s version sped back up: calm, muddy, then logs and rocks (labeled); source caption for the numbers | "In Colombia, flash floods come down mountain creeks in minutes. Medellín has about 4,200 creeks and fewer than 30 level sensors. When the water rises, someone still goes to look." | SIATA, minuto30.com |
+| 0:25–0:39 | The twin opens, captioned "Simulated creek (digital twin)": camera watching, SAM 3.1 mask, yellow waterline at the gauge | "Vigiax turns a camera into a river gauge. Every 5 seconds SAM 3.1, on the Meta Model API, finds the water and reads the level where it meets the gauge." | product |
+| 0:39–0:52 | Judge code → Turn on (start-up cut) → masks follow the water; people and logs boxed | "With a GPU, open-weights SAM 3.1 follows the water live: people on the bank, logs coming down." | product |
+| 0:52–1:17 | 2-minute flood with three people on the bank (sped up): steps light up; agent console: Muse Spark's reading, Muse Spark Open's decision, "verified", tokens and cost | "A flash flood, with people on the bank. Muse Spark reads the scene; an agent on Muse Spark Open, the open-weights model on Baseten, orders evacuation, and a verifier checks every number it cites. In our test it warned 23 seconds before the water reached the line, 8 seconds ahead of the rules alone." | eval/results/twin-2026-11 |
+| 1:17–1:30 | Phone: the WhatsApp alert arrives | "The alert reaches the people downstream on WhatsApp, in plain words, from fixed templates filled with measured values." | product |
+| 1:30–1:51 | 2-minute debris flow in the twin (sped up): SAM loses the water in the mud; console: Muse Spark's reading ("thick muddy flow carrying rocks and wooden planks"), scene → evacuate, the agent holds it, verified | "The deadliest case is a debris flow. In thick mud the camera loses the water, and the rules alone never warned. Muse Spark still sees the mud, logs and rocks, and the evacuation goes out a minute before the flow reaches the line." | eval/results/twin-2026-11 (61 s) |
+| 1:51–2:18 | El Reno, before and at the peak, with the SAM mask; gage numbers next to SAM's | "Same pipeline on a real river: a USGS webcam in Oklahoma. Through a 3.66-meter flood, SAM 3.1 read the level with a mean error of 6.9 centimeters against the official gage. In 21 calm days it raised no false alarm, and in the flood the agent raised the alert an hour before the rules." | eval/results/el-reno-2026-10, alerts-el-reno-2026-10 |
+| 2:18–2:33 | Network selector: 2G / offline / LoRa; bytes sent; local siren | "Mountain villages lose signal first. The node measures on site, sounds a local siren without internet, and sends numbers, not video: ten bytes a reading over LoRa." | product (packet format) |
+| 2:33–2:50 | Agent console and the day's spend in the header (real product, no card) | "The cheap loop runs always; the language models wake only when something changes. Watching the real river for 27 days, one photo an hour, cost one dollar thirty-five in model calls." | alerts-el-reno-2026-10: SAM $1.28 + agent $0.07 |
+| 2:50–3:00 | URL and QR to the live twin | "Any camera. Any creek. Before the water. Try it live at vigiax.bukivo.com." | — |
+
+Numbers to keep straight: the agent results are one run per case (twin) and one flood (El Reno), and the README says
+so. A station sending a frame every 5 s costs far more than the hourly river (SAM: about $3.60 a day at one frame a
+minute); never quote the river's cost for the twin's pace.
 
 ## Landing loop (15–20 s, no sound)
 
@@ -41,17 +44,18 @@ alarms on calm days **[eval: count over N days]**.
 3. The badge climbs to Evacuate; the WhatsApp alert lands on a phone (4 s).
 4. El Reno at the peak with the mask, "Real river · mean error 6.9 cm against the official gage" (4 s).
 
-## Shot list (record Saturday, after the evaluation)
+## Shot list (record on vigiax.bukivo.com)
 
 | # | What | How |
 |---|---|---|
 | 1 | Twin opening in the SAM view | Chrome at 1920×1080, fresh station (`?station=twin-xxxxxx` with a new id), screen recording |
 | 2 | Judge code, GPU on, live masks with people and logs | Judge code, people 3, logs on; wait for "Live GPU on"; record 30 s |
-| 3 | 1-minute flash flood from the steps | Same session; record the full minute |
-| 4 | Agent console during the flood | Alerts panel open after the raise |
+| 3 | Flood with people on the bank | Phone signed up first (shot 5). Flood length 2 min, people 3 set after the camera's first minute, then "Flash flood"; record until evacuate and the agent's run |
+| 4 | Agent console during the flood | Alerts panel open after the raise: scene, decision, verified, cost |
 | 5 | WhatsApp alert on the phone | Phone signed up with the QR before shot 3; screen-record the phone |
-| 6 | El Reno before / peak | `web/public/img/el-reno-before.webp`, `el-reno-peak.webp`, with captions |
-| 7 | Low connectivity | After Friday's feature: selector, offline, siren, bytes |
-| 8 | Context shots | Own footage, licensed clips (in `data/manifest.json`) or AI-generated (labeled) |
+| 6 | Debris flow | New station; after the first minute tick "Debris flow" and "Logs", then "Flash flood" (2 min); record until evacuate, with the console |
+| 7 | El Reno before / peak | The landing's Measure band (slider between the photo and SAM's mask) |
+| 8 | Low connectivity | Selector, offline, siren, bytes |
+| 9 | Context | `data/raw/ai/creek-debris-flow-hailuo03-x3.mp4` (AI-generated, Leonardo.ai; labeled) |
 
 Turn the GPU off after recording (`Turn off`, or it stops 3 minutes after the tab closes).
