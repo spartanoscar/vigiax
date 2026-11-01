@@ -141,6 +141,15 @@ func TestMessageHidesBrokenLevel(t *testing.T) {
 	}
 }
 
+// A raise on what the camera sees, with nothing measured, says so in plain words.
+func TestMessageRaisedOnTheScene(t *testing.T) {
+	c := TwinDefaults()
+	e := Event{T: t0, Kind: "raise", From: Alert, To: Evacuate, By: "agent"}
+	if en := Text(Fill(&c, e, "en"), "en"); !strings.Contains(en, "What is happening: The water cannot be measured now, but the stream looks dangerous.") {
+		t.Fatalf("en:\n%s", en)
+	}
+}
+
 func TestMovedCameraKeepsTheLevelUntilBack(t *testing.T) {
 	c := TwinDefaults()
 	s := State{Level: Attention}

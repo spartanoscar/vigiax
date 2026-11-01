@@ -143,6 +143,14 @@ func facts(c *Config, e Event, en bool) string {
 		}
 	}
 	if len(parts) == 0 {
+		// Raised on what the camera sees (a debris flow, a dammed channel) with
+		// no level it can measure.
+		if e.By == "scene" || e.By == "agent" {
+			if en {
+				return "The water cannot be measured now, but the stream looks dangerous."
+			}
+			return "No se puede medir el agua ahora, pero la quebrada se ve peligrosa."
+		}
 		if en {
 			return "The level changed."
 		}
