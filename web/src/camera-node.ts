@@ -9,11 +9,12 @@ import { Lens, type LensState } from "./lens";
 
 export const FRAME_W = 1280;
 export const FRAME_H = 720;
+const NODE_AIM = new THREE.Vector3(GAUGE_POS.x - 2, 1, GAUGE_POS.z - 6);
 
 export class CameraNode {
   readonly canvas: HTMLCanvasElement; // the 3D render
   readonly output: HTMLCanvasElement; // what the camera actually sends: render + lens
-  readonly camera = new THREE.PerspectiveCamera(34, FRAME_W / FRAME_H, 0.1, 400);
+  readonly camera = new THREE.PerspectiveCamera(50, FRAME_W / FRAME_H, 0.1, 400);
   readonly lensState: LensState = { drops: false, haze: 0, ir: 0 };
   shake = 0; // 0 still .. 1 strong wind shaking the pole
   infrared = true; // night vision with its own lamp, as most outdoor IP cameras have
@@ -25,7 +26,7 @@ export class CameraNode {
   private lastAt = performance.now();
   // The infrared lamp next to the lens. It is on only while the node renders:
   // people do not see infrared, so the main view stays dark at night.
-  private lamp = new THREE.SpotLight(0xffffff, 0, 40, THREE.MathUtils.degToRad(32), 0.6, 1.6);
+  private lamp = new THREE.SpotLight(0xffffff, 0, 60, THREE.MathUtils.degToRad(40), 0.6, 1.6);
 
   constructor(private world: World) {
     this.canvas = document.createElement("canvas");
@@ -34,15 +35,17 @@ export class CameraNode {
     this.renderer.setSize(FRAME_W, FRAME_H, false);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap; // soft, with the sun's shadow radius
     this.renderer.shadowMap.autoUpdate = false; // static casters: one shadow pass
     this.renderer.shadowMap.needsUpdate = true;
     // Mounted on a pole well above the highest flood the twin can produce (3.6 m):
-    // a camera under water sees nothing, in the twin and in the field.
-    this.camera.position.set(GAUGE_POS.x - 6.5, 6.5, GAUGE_POS.z + 11);
-    this.camera.lookAt(GAUGE_POS.x - 2.2, 1.4, GAUGE_POS.z - 3);
+    // a camera under water sees nothing, in the twin and in the field. From
+    // downstream it frames the gauge, both banks and the footbridge.
+    this.camera.position.set(GAUGE_POS.x - 4, 7, GAUGE_POS.z + 22);
+    this.camera.lookAt(NODE_AIM);
     this.home.copy(this.camera.quaternion);
     this.lamp.position.copy(this.camera.position);
-    this.lamp.target.position.set(GAUGE_POS.x - 2.2, 1.4, GAUGE_POS.z - 3);
+    this.lamp.target.position.copy(NODE_AIM);
     world.scene.add(this.lamp, this.lamp.target);
     this.knocked.identity();
     this.env = world.reflection(this.renderer);

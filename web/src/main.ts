@@ -6,7 +6,7 @@ import { CameraNode, FRAME_W, FRAME_H } from "./camera-node";
 import { events } from "./events";
 import { STATION } from "./station";
 import { samView } from "./sam-view";
-import { link, LocalGauge, packet, bandOf, BPS_2G, LORA_EVERY_MS, type Local } from "./network";
+import { link, LocalGauge, packet, bandOf, colsAt, BPS_2G, LORA_EVERY_MS, type Local } from "./network";
 
 const FRAME_SECONDS = 5;
 const SESSION_MINUTES = 5; // the camera node stops by itself: a surge fits, an open tab costs little
@@ -26,13 +26,14 @@ const renderer = new THREE.WebGLRenderer({ antialias: PIXEL_RATIO < 1.5, powerPr
 renderer.setPixelRatio(PIXEL_RATIO);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap; // soft, with the sun's shadow radius
 renderer.shadowMap.autoUpdate = false; // trees, rocks and the gauge never move: one shadow pass
 renderer.shadowMap.needsUpdate = true;
 $("view").appendChild(renderer.domElement);
 const mainEnv = world.reflection(renderer);
 
 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
-camera.position.set(GAUGE_POS.x - 4, 7, GAUGE_POS.z + 22);
+camera.position.set(GAUGE_POS.x - 1, 9, GAUGE_POS.z + 30); // behind the node, so its pole is in view
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(GAUGE_POS.x - 2, 1, GAUGE_POS.z - 6);
 controls.maxPolarAngle = Math.PI * 0.48;
@@ -83,7 +84,14 @@ addEventListener("resize", resize);
 resize();
 
 // --- twin state ---------------------------------------------------------
-const state: WorldState = { levelM: 0.45, mud: 0.15, rain: 0, night: 0, people: 0, logs: false, debrisFlow: false, dam: false };
+const state: WorldState = { levelM: 0.45, mud: 0.15, rain: 0, night: 0, people: 2, logs: false, debrisFlow: false, dam: false, evacuate: false };
+// The view's camera and the twin's state, for scripted recordings of the demo.
+Object.assign(window, { vigiax: { camera, controls, state } });
+// The people in the twin hear the station: at evacuate they leave by the trails.
+events.addEventListener("alert", (e) => {
+  const a = JSON.parse((e as MessageEvent).data);
+  if (a.station === STATION && a.event.kind !== "blind") state.evacuate = a.event.to === "evacuate";
+});
 let surge: { from: number; to: number; mudFrom: number; t0: number; secs: number } | null = null;
 
 const levelInput = $<HTMLInputElement>("level");
@@ -160,7 +168,7 @@ knock.onclick = () => {
 type Reading = { t: string; level_cm?: number; waterline_y?: number; coverage: number; confidence: number; sam_ms: number; node?: boolean };
 type Summary = {
   id: string;
-  calibration?: { source: string; px_per_unit: number; zero_y: number; unit: string; col_x1: number; col_x2: number };
+  calibration?: { source: string; px_per_unit: number; zero_y: number; unit: string; col_x1: number; col_x2: number; col_y?: number; slope?: number };
   last?: Reading;
   rise_5min_cm_per_min?: number;
 };
@@ -329,10 +337,13 @@ $("calibrate").onclick = async () => {
 async function calibrateFromGeometry() {
   const lo = node.project(world.gaugePoint(0.5)), hi = node.project(world.gaugePoint(3.5));
   const left = node.project(world.gaugePoint(1, -1)), right = node.project(world.gaugePoint(1, 1));
+  // The gauge leans in the picture (the camera looks down from the bank): its
+  // centre line from the 0.5 m mark to the 3.5 m mark.
+  const slope = (hi.x - lo.x) / (hi.y - lo.y);
   const res = await fetch(`/api/stations/${STATION}/calibration`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ Y1: hi.y, V1: 3.5, Y2: lo.y, V2: 0.5, Unit: "M", X1: Math.round(Math.min(left.x, right.x)), X2: Math.round(Math.max(left.x, right.x)), Top: GAUGE_HEIGHT }),
+    body: JSON.stringify({ Y1: hi.y, V1: 3.5, Y2: lo.y, V2: 0.5, Unit: "M", X1: Math.round(Math.min(left.x, right.x)), X2: Math.round(Math.max(left.x, right.x)), ColY: (left.y + right.y) / 2, Slope: slope, Top: GAUGE_HEIGHT }),
   });
   show((await res.json()) as Summary);
 }
@@ -419,7 +430,14 @@ function drawOverlay(y: number | undefined, c?: Summary["calibration"]) {
     g.strokeStyle = "rgba(255,255,255,.9)";
     g.lineWidth = 3;
     g.setLineDash([10, 8]);
-    g.strokeRect(c.col_x1 - 6, top, c.col_x2 - c.col_x1 + 12, bottom - top);
+    const a = colsAt(c, top), b = colsAt(c, bottom);
+    g.beginPath();
+    g.moveTo(a.x1 - 6, top);
+    g.lineTo(a.x2 + 6, top);
+    g.lineTo(b.x2 + 6, bottom);
+    g.lineTo(b.x1 - 6, bottom);
+    g.closePath();
+    g.stroke();
     g.setLineDash([]);
   }
   if (y == null) return;

@@ -16,7 +16,14 @@ import { events } from "./events";
 // looking dry, counted from the bottom of the gauge up.
 
 export type Mode = "4g" | "2g" | "off" | "lora";
-export type Calib = { px_per_unit: number; zero_y: number; unit: string; col_x1: number; col_x2: number; top?: number };
+export type Calib = { px_per_unit: number; zero_y: number; unit: string; col_x1: number; col_x2: number; col_y?: number; slope?: number; top?: number };
+
+// colsAt is where the gauge columns are at frame row y: a gauge seen from the
+// bank leans in the picture, so they shift `slope` px per row.
+export function colsAt(c: Calib, y: number) {
+  const d = (c.slope ?? 0) * (y - (c.col_y ?? 0));
+  return { x1: c.col_x1 + d, x2: c.col_x2 + d };
+}
 export type Local = { levelCm?: number; y?: number; confidence: number };
 
 const UNIT_CM: Record<string, number> = { CM: 1, M: 100, FT: 30.48 };
@@ -31,7 +38,9 @@ type Band = { y0: number; rows: Float32Array }; // mean R, G, B of each row acro
 
 export function bandOf(c: Calib, h: number) {
   const top = c.top != null ? c.zero_y - c.top * c.px_per_unit : c.zero_y - 600;
-  return { x0: Math.max(0, Math.round(c.col_x1)), x1: Math.round(c.col_x2), y0: Math.max(0, Math.round(top) + 4), y1: Math.min(h - 1, Math.round(c.zero_y) + 40) };
+  const y0 = Math.max(0, Math.round(top) + 4), y1 = Math.min(h - 1, Math.round(c.zero_y) + 40);
+  const a = colsAt(c, y0), b = colsAt(c, y1);
+  return { x0: Math.max(0, Math.round(Math.min(a.x1, b.x1))), x1: Math.round(Math.max(a.x2, b.x2)), y0, y1 };
 }
 
 export class LocalGauge {
@@ -48,14 +57,18 @@ export class LocalGauge {
     const px = canvas.getContext("2d", { willReadFrequently: true })!.getImageData(b.x0, b.y0, w, h).data;
     const rows = new Float32Array(h * 3);
     for (let y = 0; y < h; y++) {
+      // Only the gauge's own columns on this row: the band is wider when it leans.
+      const cs = colsAt(c, b.y0 + y);
+      const from = Math.max(0, Math.round(cs.x1) - b.x0), to = Math.min(w - 1, Math.round(cs.x2) - b.x0);
       let r = 0, g = 0, bl = 0;
-      for (let x = 0; x < w; x++) {
+      for (let x = from; x <= to; x++) {
         const i = (y * w + x) * 4;
         r += px[i];
         g += px[i + 1];
         bl += px[i + 2];
       }
-      rows.set([r / w, g / w, bl / w], y * 3);
+      const n = Math.max(1, to - from + 1);
+      rows.set([r / n, g / n, bl / n], y * 3);
     }
     return { y0: b.y0, rows };
   }
