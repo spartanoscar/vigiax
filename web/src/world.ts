@@ -936,10 +936,10 @@ float fn(vec2 p) {
 {
   float c = 2.2 * sin(vWorld.z * 0.045) + 0.8 * sin(vWorld.z * 0.11 + 1.0);
   float d = abs(vWorld.x - c);
-  vec2 q = vec2(vWorld.x * 1.7, vWorld.z * 0.45 + uTime);
+  vec2 q = vec2(vWorld.x * 1.7, vWorld.z * 0.45 - uTime); // minus: carried toward +z, downstream, like the logs
   float n = fn(q) * 0.6 + fn(q * 2.3 + 7.0) * 0.4;
   float bank = smoothstep(${(BED_HALF_WIDTH - 1.1).toFixed(2)}, ${(BED_HALF_WIDTH + 0.4).toFixed(2)}, d) * smoothstep(0.35, 0.7, n);
-  float streak = smoothstep(0.78, 0.92, fn(vec2(vWorld.x * 3.0, vWorld.z * 0.25 + uTime * 1.3))) * 0.5;
+  float streak = smoothstep(0.78, 0.92, fn(vec2(vWorld.x * 3.0, vWorld.z * 0.25 - uTime * 1.3))) * 0.5;
   float away = smoothstep(2.5, 5.0, distance(vWorld.xz, uGauge));
   float foam = clamp(bank + streak, 0.0, 1.0) * away * uFoam;
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.89, 0.88), foam);
