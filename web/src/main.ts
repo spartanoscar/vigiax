@@ -6,6 +6,7 @@ import { CameraNode, FRAME_W, FRAME_H } from "./camera-node";
 import { events } from "./events";
 import { STATION } from "./station";
 import { samView } from "./sam-view";
+import { ambience } from "./sound";
 import { link, LocalGauge, packet, bandOf, colsAt, BPS_2G, LORA_EVERY_MS, type Local } from "./network";
 
 const FRAME_SECONDS = 5;
@@ -497,6 +498,7 @@ renderer.setAnimationLoop((now) => {
     showControls();
   }
   world.update(state, dt);
+  ambience.update(state);
   controls.update();
   // In the SAM view the screen shows the camera node's picture, at full rate,
   // and the main view is not drawn at all.
