@@ -61,7 +61,7 @@ func (g *gpuControl) run(ctx context.Context, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, g.path, args...)
 	cmd.Env = os.Environ()
 	// The command's own names for its limits, from ours.
-	for _, kv := range [][2]string{{"GPU_MAX_MINUTES", "MAX_MINUTES"}, {"GPU_DAILY_BUDGET_USD", "DAILY_BUDGET_USD"}, {"GPU_VOLUME", "NETWORK_VOLUME_ID"}} {
+	for _, kv := range [][2]string{{"GPU_MAX_MINUTES", "MAX_MINUTES"}, {"GPU_DAILY_BUDGET_USD", "DAILY_BUDGET_USD"}, {"GPU_MONTHLY_BUDGET_USD", "MONTHLY_BUDGET_USD"}, {"GPU_VOLUME", "NETWORK_VOLUME_ID"}} {
 		if v := os.Getenv(kv[0]); v != "" {
 			cmd.Env = append(cmd.Env, kv[1]+"="+v)
 		}

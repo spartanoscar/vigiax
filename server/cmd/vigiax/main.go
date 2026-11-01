@@ -21,8 +21,8 @@
 // WA_GRAPH_VERSION (WhatsApp alerts; off without a token), BASETEN_API_KEY
 // (the agent, Muse Spark Open) and AGENT_DAILY_BUDGET_USD (1). The live view's
 // GPU is linked in DATA_DIR/gpu.json ({"url", "token"}) or GPU_URL and GPU_TOKEN, or
-// turned on by a judge through GPU_CTL (with GPU_MAX_MINUTES, GPU_DAILY_BUDGET_USD
-// and GPU_VOLUME passed on to it).
+// turned on by a judge through GPU_CTL (with GPU_MAX_MINUTES, GPU_DAILY_BUDGET_USD,
+// GPU_MONTHLY_BUDGET_USD and GPU_VOLUME passed on to it).
 package main
 
 import (
