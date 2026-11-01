@@ -79,7 +79,7 @@
             "name": "What if the internet goes down?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "The node keeps measuring locally and can sound a siren on its own. Readings are stored and sent when the link returns, and LoRa or SMS can carry the alert when there is no data at all."
+              "text": "The node keeps measuring locally and can sound a siren on its own. Readings are stored and sent when the link returns, and over LoRa each reading travels as a 10-byte packet when there is no cell signal at all."
             }
           },
           {
@@ -456,26 +456,26 @@ What to do: Go to high ground now and take children and elders with you.</p>
             <h2 class="h2">Built for places <span class="hl">without signal.</span></h2>
             <p class="body-lg">
               The mountains that flood are the ones with the worst coverage. The node measures locally and can sound a
-              siren with no internet. It sends numbers, not video, and keeps them until the link comes back. A node
-              upstream warns the village downstream.
+              siren with no internet. It sends numbers, not video, and keeps them until the link comes back. Placed
+              upstream, the camera warns the village downstream before the water gets there.
             </p>
             <ul class="checks">
               <li>Local siren, even offline</li>
               <li>Store-and-forward when the link drops</li>
-              <li>LoRa and SMS as fallback</li>
+              <li>LoRa when there is no cell signal</li>
             </ul>
           </div>
           <div class="band-visual net">
-            <div class="net-modes" role="img" aria-label="Network modes in the twin: normal, 2G, offline and LoRa">
-              <span class="on">Normal</span><span>2G</span><span>Offline</span><span>LoRa</span>
+            <div class="net-modes" role="img" aria-label="Network modes in the twin: 4G, 2G, no signal and LoRa">
+              <span class="on">4G</span><span>2G</span><span>No signal</span><span>LoRa</span>
             </div>
             <div class="packet">
-              <div class="packet-head"><span>One reading</span><span class="packet-size">60 bytes</span></div>
-              <pre><code>{"t":"16:21:05","level_cm":184,
- "rise_cm_10min":25,"mud":0.7}</code></pre>
+              <div class="packet-head"><span>One reading, offline or over LoRa</span><span class="packet-size">10 bytes</span></div>
+              <pre><code>time 16:21:05 · level 1840 mm
+confidence 86% · siren off · #42</code></pre>
             </div>
             <div class="river-line" aria-hidden="true">
-              <div class="rl-node"><span class="rl-dot up"></span>Upstream node</div>
+              <div class="rl-node"><span class="rl-dot up"></span>Camera node</div>
               <div class="rl-track"><i></i></div>
               <div class="rl-node"><span class="rl-dot"></span>Village</div>
             </div>
@@ -505,7 +505,7 @@ What to do: Go to high ground now and take children and elders with you.</p>
             <article class="model">
               <span class="model-name">Muse Spark Open</span>
               <h3>Keeps watch</h3>
-              <p>The long-running agent, on open weights. Holds the memory of the night and decides whether to raise, hold or lower the alert.</p>
+              <p>The long-running agent, on open weights. Remembers the day's alerts and decides whether to hold the alert or raise it sooner. It never lowers one.</p>
               <span class="model-when">On events</span>
             </article>
           </div>
@@ -534,7 +534,7 @@ What to do: Go to high ground now and take children and elders with you.</p>
             </details>
             <details>
               <summary>What if the internet goes down?</summary>
-              <p>The node keeps measuring locally and can sound a siren on its own. Readings are stored and sent when the link returns, and LoRa or SMS can carry the alert when there is no data at all.</p>
+              <p>The node keeps measuring locally and can sound a siren on its own. Readings are stored and sent when the link returns, and over LoRa each reading travels as a 10-byte packet when there is no cell signal at all.</p>
             </details>
             <details>
               <summary>Does the AI write the alert?</summary>
