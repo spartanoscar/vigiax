@@ -106,6 +106,28 @@ export class CameraNode {
     return new Promise((ok, fail) => c.toBlob((b) => (b ? ok(b) : fail(new Error("no frame"))), "image/jpeg", quality));
   }
 
+  // closeUp renders part of the frame (frame pixels x, y, w, h) at k times the
+  // resolution, as the node's full sensor sees it: the node reads its own gauge
+  // from this, while it sends the service a smaller picture.
+  closeUp(r: { x: number; y: number; w: number; h: number }, k: number): ImageData {
+    const w = Math.max(1, Math.round(r.w * k)), h = Math.max(1, Math.round(r.h * k));
+    if (!this.closeTarget || this.closeTarget.width !== w || this.closeTarget.height !== h) {
+      this.closeTarget?.dispose();
+      this.closeTarget = new THREE.WebGLRenderTarget(w, h, { colorSpace: THREE.SRGBColorSpace });
+    }
+    this.camera.setViewOffset(FRAME_W * k, FRAME_H * k, r.x * k, r.y * k, w, h);
+    this.renderer.setRenderTarget(this.closeTarget);
+    this.renderer.render(this.world.scene, this.camera);
+    this.renderer.setRenderTarget(null);
+    this.camera.clearViewOffset();
+    const px = new Uint8ClampedArray(w * h * 4);
+    this.renderer.readRenderTargetPixels(this.closeTarget, 0, 0, w, h, px);
+    const img = new ImageData(w, h);
+    for (let y = 0; y < h; y++) img.data.set(px.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4); // GL rows go up
+    return img;
+  }
+  private closeTarget?: THREE.WebGLRenderTarget;
+
   // Frame pixel of a world point, as the service sees it (y down), with the
   // camera where it was installed: the calibration is made once, at install.
   project(p: THREE.Vector3): { x: number; y: number } {

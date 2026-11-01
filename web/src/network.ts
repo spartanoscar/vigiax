@@ -34,7 +34,10 @@ export const PACKET = 10;
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // --- reading the gauge on the node --------------------------------------------------
-type Band = { y0: number; rows: Float32Array }; // mean R, G, B of each row across the gauge columns
+// Each row across the gauge columns: mean R, G, B and how much the brightness
+// varies along it (the printed marks: a dry gauge is striped, water is even).
+type Band = { y0: number; rows: Float32Array };
+const F = 4; // values per row
 
 export function bandOf(c: Calib, h: number) {
   const top = c.top != null ? c.zero_y - c.top * c.px_per_unit : c.zero_y - 600;
@@ -43,45 +46,63 @@ export function bandOf(c: Calib, h: number) {
   return { x0: Math.max(0, Math.round(Math.min(a.x1, b.x1))), x1: Math.round(Math.max(a.x2, b.x2)), y0, y1 };
 }
 
+// How far a row's colour may be from how it looked dry and still count as dry.
+// Dry rows match their learned look within a few units (after the light fit);
+// a gauge far from the camera is a few pixels wide and averages to a grey that
+// shadowed water comes close to, so the margin stays tight.
+const WET = 15;
+
 export class LocalGauge {
-  private dry = new Map<number, [number, number, number]>(); // row → what it looks like above the water
+  private dry = new Map<number, number[]>(); // row → what it looks like above the water
   private last: { y: number; t: number } | null = null; // the last waterline let through
   private held: number | null = null; // a far-off waterline waiting for the next frame to confirm it
   learned = 0; // frames learned from
 
-  capture(canvas: HTMLCanvasElement, c: Calib | undefined): Band | null {
+  // capture averages each frame row of the gauge, from a close-up of the band
+  // rendered k times finer than the frame (see CameraNode.closeUp).
+  capture(closeUp: (r: { x: number; y: number; w: number; h: number }, k: number) => ImageData, frameH: number, c: Calib | undefined): Band | null {
     if (!c) return null;
-    const b = bandOf(c, canvas.height);
+    const b = bandOf(c, frameH);
     if (b.x1 <= b.x0 || b.y1 <= b.y0) return null;
     const w = b.x1 - b.x0 + 1, h = b.y1 - b.y0 + 1;
-    const px = canvas.getContext("2d", { willReadFrequently: true })!.getImageData(b.x0, b.y0, w, h).data;
-    const rows = new Float32Array(h * 3);
+    // A gauge a few pixels wide in the frame is a grey smear, as murky water
+    // is: the node reads it with about 100 px per metre.
+    const k = Math.max(1, Math.min(4, Math.ceil(100 / (c.px_per_unit * (100 / (UNIT_CM[c.unit] ?? 100))))));
+    const img = closeUp({ x: b.x0, y: b.y0, w, h }, k);
+    const px = img.data, W = img.width;
+    const rows = new Float32Array(h * F);
     for (let y = 0; y < h; y++) {
       // Only the gauge's own columns on this row: the band is wider when it leans.
       const cs = colsAt(c, b.y0 + y);
-      const from = Math.max(0, Math.round(cs.x1) - b.x0), to = Math.min(w - 1, Math.round(cs.x2) - b.x0);
-      let r = 0, g = 0, bl = 0;
-      for (let x = from; x <= to; x++) {
-        const i = (y * w + x) * 4;
-        r += px[i];
-        g += px[i + 1];
-        bl += px[i + 2];
+      const from = Math.max(0, Math.round((cs.x1 - b.x0) * k)), to = Math.min(W - 1, Math.round((cs.x2 - b.x0) * k));
+      let r = 0, g = 0, bl = 0, l2 = 0, n = 0;
+      for (let sy = y * k; sy < Math.min(img.height, (y + 1) * k); sy++) {
+        for (let x = from; x <= to; x++) {
+          const i = (sy * W + x) * 4;
+          r += px[i];
+          g += px[i + 1];
+          bl += px[i + 2];
+          const l = (px[i] + px[i + 1] + px[i + 2]) / 3;
+          l2 += l * l;
+          n++;
+        }
       }
-      const n = Math.max(1, to - from + 1);
-      rows.set([r / n, g / n, bl / n], y * 3);
+      n = Math.max(1, n);
+      const lm = (r + g + bl) / 3 / n;
+      rows.set([r / n, g / n, bl / n, Math.sqrt(Math.max(0, l2 / n - lm * lm))], y * F);
     }
     return { y0: b.y0, rows };
   }
 
   // learn takes the rows above the waterline SAM 3.1 found as dry gauge.
   learn(band: Band, waterlineY: number) {
-    const n = band.rows.length / 3;
+    const n = band.rows.length / F;
     for (let i = 0; i < n; i++) {
       const y = band.y0 + i;
       if (y > waterlineY - 4) break;
-      const v: [number, number, number] = [band.rows[i * 3], band.rows[i * 3 + 1], band.rows[i * 3 + 2]];
+      const v = Array.from(band.rows.subarray(i * F, i * F + F));
       const old = this.dry.get(y);
-      this.dry.set(y, old ? [old[0] * 0.6 + v[0] * 0.4, old[1] * 0.6 + v[1] * 0.4, old[2] * 0.6 + v[2] * 0.4] : v);
+      this.dry.set(y, old ? old.map((o, k) => o * 0.6 + v[k] * 0.4) : v);
     }
     this.learned++;
   }
@@ -93,18 +114,19 @@ export class LocalGauge {
   // tolerates a camera that sways in the wind.
   read(band: Band, c: Calib): Local {
     if (!this.learned) return { confidence: 0 };
-    const n = band.rows.length / 3;
+    const n = band.rows.length / F;
     // The light changes (a cloud, the sun, the water itself lighting the
     // gauge): fit, per colour, how the top of the gauge (above any flood worth
     // a siren) looks now against how it looked dry, and compare every row
     // through that fit.
+    const top = Math.max(6, Math.min(30, Math.round(0.3 * c.px_per_unit * (100 / (UNIT_CM[c.unit] ?? 100))))); // rows in its top 30 cm
     const gain = [0, 1, 2].map((ch) => {
       const xs: number[] = [], ys: number[] = [];
-      for (let i = 0; i < Math.min(30, n); i++) {
+      for (let i = 0; i < Math.min(top, n); i++) {
         const ref = this.dry.get(band.y0 + i);
         if (ref) {
           xs.push(ref[ch]);
-          ys.push(band.rows[i * 3 + ch]);
+          ys.push(band.rows[i * F + ch]);
         }
       }
       const m = xs.length, mx = xs.reduce((a, b) => a + b, 0) / (m || 1), my = ys.reduce((a, b) => a + b, 0) / (m || 1);
@@ -118,19 +140,23 @@ export class LocalGauge {
     });
     const wet: boolean[] = [];
     let known = 0, matched = 0;
+    // A row is matched against its neighbours too, for a camera swaying a few
+    // centimetres on its pole: rows, as many as 3.5 cm of gauge make.
+    const sway = Math.max(1, Math.min(3, Math.round(0.035 * c.px_per_unit * (100 / (UNIT_CM[c.unit] ?? 100)))));
     for (let i = 0; i < n; i++) {
       const y = band.y0 + i;
       let best = Infinity;
-      for (let d = -3; d <= 3; d++) {
+      for (let d = -sway; d <= sway; d++) {
         const ref = this.dry.get(y + d);
         if (!ref) continue;
-        const e = [0, 1, 2].map((ch) => band.rows[i * 3 + ch] - (gain[ch].a * ref[ch] + gain[ch].b));
-        best = Math.min(best, Math.hypot(e[0], e[1], e[2]));
+        const e = [0, 1, 2].map((ch) => band.rows[i * F + ch] - (gain[ch].a * ref[ch] + gain[ch].b));
+        const stripes = band.rows[i * F + 3] - ref[3] * (gain[0].a + gain[1].a + gain[2].a) / 3; // the marks, as bright as the light now
+        best = Math.min(best, Math.hypot(e[0], e[1], e[2], stripes));
       }
-      wet.push(best > 30); // never seen dry counts as wet: below the lowest water it learned
+      wet.push(best > WET); // never seen dry counts as wet: below the lowest water it learned
       if (best !== Infinity) {
         known++;
-        if (best <= 30) matched++;
+        if (best <= WET) matched++;
       }
     }
     // Up from the bottom while the rows stay wet; a few dry-looking rows (foam,

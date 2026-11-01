@@ -205,7 +205,7 @@ async function sendFrame() {
   // 4G: the whole picture. 2G: the gauge and what is around it.
   const crop = link.mode === "2g" && calib ? cropOf(calib) : null;
   const blob = crop ? await node.jpegCrop(crop) : await node.jpeg();
-  const band = localGauge.capture(node.output, calib);
+  const band = localGauge.capture((r, k) => node.closeUp(r, k), FRAME_H, calib);
   // The twin's real level goes along, as a gage beside the camera would: it
   // scores the measurement (eval/), it never feeds the alert.
   const q = new URLSearchParams({ truth_cm: truthCm.toFixed(1) });
@@ -235,7 +235,7 @@ async function sendFrame() {
 async function measureOnNode() {
   node.render();
   feedCtx.drawImage(node.output, 0, 0);
-  const band = localGauge.capture(node.output, calib);
+  const band = localGauge.capture((r, k) => node.closeUp(r, k), FRAME_H, calib);
   const r: Local = band && calib ? localGauge.read(band, calib) : { confidence: 0 };
   link.local(r);
   const p = packet(Date.now(), r, link.sirenOn);
