@@ -453,7 +453,7 @@ function drawOverlay(y: number | undefined, c?: Summary["calibration"]) {
 const chart = $<HTMLCanvasElement>("chart");
 function drawChart() {
   const w = (chart.width = chart.clientWidth * devicePixelRatio);
-  const h = (chart.height = 160 * devicePixelRatio);
+  const h = (chart.height = chart.clientHeight * devicePixelRatio);
   const g = chart.getContext("2d")!;
   g.clearRect(0, 0, w, h);
   const now = Date.now(), span = 10 * 60 * 1000, maxCm = 380;

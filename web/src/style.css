@@ -126,6 +126,14 @@ body.node-on .rec { background: var(--flood); animation: blink 1.2s steps(2) inf
 
 .chart-wrap { border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); padding: 8px 8px 6px; }
 #chart { display: block; width: 100%; height: 160px; }
+/* Where the dock fits between the side cards, the camera node's card runs to the
+   bottom of the screen and the chart takes the room left over. */
+@media (min-width: 1280px) and (min-height: 700px) {
+  .sensor { bottom: 16px; max-height: none; display: flex; flex-direction: column; }
+  .sensor > * { flex-shrink: 0; }
+  .sensor .chart-wrap { flex: 1 0 auto; display: flex; flex-direction: column; }
+  #chart { flex: 1 1 0; height: auto; min-height: 160px; }
+}
 .legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); padding: 6px 4px 0; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { display: inline-block; }
