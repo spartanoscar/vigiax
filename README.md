@@ -44,6 +44,13 @@ Nothing to install: open the **[live digital twin](https://vigiax.bukivo.com/twi
 
 ## The problem
 
+Flash floods kill more than 5,000 people a year, more than any other kind of flood
+([WMO](https://wmo.int/media/news/flash-flood-guidance-system-saves-lives)). Heavy rain is becoming more frequent and
+more intense, and human-induced climate change is likely the main driver
+([IPCC AR6, SPM A.3.2](https://www.ipcc.ch/report/ar6/wg1/downloads/report/IPCC_AR6_WGI_SPM.pdf)). A third of the
+world's people still have no early warning system
+([WMO](https://wmo.int/site/early-warnings-all/wmo-and-early-warnings-all-initiative)).
+
 In Colombia, flash floods (*crecientes súbitas*) come down mountain creeks in minutes and kill people every rainy
 season. Medellín alone has about 4,200 creeks and fewer than 30 level sensors (SIATA, Medellín's early-warning
 system). Where there is no sensor, someone still has to go and look at the water.
