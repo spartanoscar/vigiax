@@ -16,6 +16,25 @@ Muse Spark Open warns the people downstream on WhatsApp, in plain words.
 > the digital twin, the evaluation and the live service in this repository were written during the event
 > (26 October – 4 November 2026). Open-source dependencies and public data are credited below.
 
+## Try it in 2 minutes
+
+Nothing to install: open the **[live digital twin](https://vigiax.bukivo.com/twin/)**.
+
+1. **See it work.** The camera node starts by itself. Press step 2, **Trigger a flash flood**: the peak arrives in
+   about a minute. SAM 3.1 measures the water every 5 seconds and the alert climbs to evacuate. Open **Alerts**
+   (top right) for the agent console: what woke the agent, what Muse Spark saw, Muse Spark Open's decision, the
+   verifier's check, and the tokens and cost of each run.
+2. **Get the alert on your phone.** Press step 3, **Get the alert on your phone**, and scan the QR code. It opens
+   WhatsApp with the sign-up message ready; send it, then trigger a flood. The subscription ends by itself 24 hours
+   after your last message.
+3. **Try a debris flow.** Open the settings (the sliders icon next to Flash flood), go to **Scene**, turn on
+   **Debris flow** and trigger a flood. The camera loses the water in the mud; Muse Spark still sees it.
+4. **Lose the signal.** In the camera node card, switch the network to **No signal** or **LoRa** during a flood. The
+   node keeps measuring by itself and sounds its local siren.
+5. **Live GPU view (optional).** In the SAM panel, enter the judge code from the submission form, press **Unlock**
+   and then **Turn on**. A GPU with open-weights SAM 3.1 starts in 30–120 seconds and the masks follow the water,
+   people and logs live.
+
 <p align="center">
   <a href="https://youtu.be/I_Wkjk29lnQ">
     <img src="docs/img/video-thumbnail.webp" width="640" alt="Demo video thumbnail: 'Any camera warns before the flood', with an EVACUATE NOW badge over the twin's flooded stream. Click to watch on YouTube.">
@@ -125,7 +144,8 @@ and printed stripes) from SAM's waterline, and without signal the waterline is w
 </p>
 
 **Alerts on WhatsApp.** People sign themselves up by sending `ALERTAS <station>` (or `ALERTS <station>`) to the
-service's number; nobody can sign up someone else's phone. A subscription ends 24 hours after the person's last
+service's number (in the twin, step 3 shows a QR code with the message ready); nobody can sign up someone else's
+phone. A subscription ends 24 hours after the person's last
 message and the number is deleted with it. Each alert has two buttons, *Got it* and *False alarm*.
 
 ## Results
